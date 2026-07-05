@@ -1,0 +1,128 @@
+/* ===================== Modern content kit ===================== *
+ * Shared atoms for the "Modern" design mode content pages (glass
+ * cards, chips, buttons, poster grids, bento tiles). Ported 1:1 from
+ * the design prototype (services/html/anixartex/prototype/proto.css)
+ * but using the app's themeable --accent-rgb tokens instead of a
+ * fixed hex, so the runtime accent-color picker keeps working.
+ * Page-specific layout (hero, backdrop, masonry, week grid, …) lives
+ * in each page's own src/styles/modern-<page>.css file, same split
+ * as the prototype (shared proto.css + per-page <style> blocks). */
+
+.mdk-glass {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+}
+.mdk-pad { padding: 22px; }
+@media (max-width: 640px) { .mdk-pad { padding: 16px; } }
+
+/* Chips */
+.mdk-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07); color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  white-space: nowrap;
+}
+button.mdk-chip { cursor: pointer; font-family: inherit; transition: 0.15s; }
+button.mdk-chip:hover { background: rgba(255, 255, 255, 0.11); }
+.mdk-chip-acc {
+  background: rgb(var(--accent-rgb) / 0.14);
+  border-color: rgb(var(--accent-rgb) / 0.4);
+  color: rgb(var(--accent-soft-rgb));
+}
+.mdk-chip-solid {
+  background: rgb(var(--accent-rgb)); color: #130d1c; border: 0; font-weight: 600;
+}
+
+/* Buttons */
+.mdk-btn {
+  display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 12px;
+  padding: 12px 22px; font-size: 14.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: 0.15s;
+}
+.mdk-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.mdk-btn-primary { background: rgb(var(--accent-rgb)); color: #130d1c; }
+.mdk-btn-primary:hover { background: rgb(var(--accent-soft-rgb)); transform: translateY(-1px); }
+.mdk-btn-ghost {
+  background: rgba(255, 255, 255, 0.07); color: #f5f0ff; border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.mdk-btn-ghost:hover { background: rgba(255, 255, 255, 0.12); }
+.mdk-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+/* Section header */
+.mdk-rowhead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin: 34px 0 15px; flex-wrap: wrap;
+}
+.mdk-rowhead:first-child { margin-top: 0; }
+.mdk-rowhead h2 {
+  font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #9b92ad; font-weight: 600; font-family: 'Inter', sans-serif;
+}
+.mdk-rowhead h2 b { color: #f5f0ff; }
+.mdk-rowhead a, .mdk-rowhead button {
+  font-size: 13px; color: rgb(var(--accent-soft-rgb)); background: none; border: 0;
+  font-family: inherit; cursor: pointer;
+}
+
+/* Horizontal poster track / responsive grid */
+.mdk-track {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 162px; gap: 16px;
+  overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory;
+}
+.mdk-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;
+}
+
+/* Poster card */
+.mdk-card { scroll-snap-align: start; cursor: pointer; display: block; color: inherit; }
+.mdk-poster {
+  position: relative; aspect-ratio: 2 / 3; border-radius: 16px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09); display: flex; align-items: flex-end;
+  transition: 0.2s; background-size: cover; background-position: center;
+}
+.mdk-card:hover .mdk-poster {
+  transform: translateY(-5px);
+  border-color: rgb(var(--accent-rgb) / 0.5);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgb(var(--accent-rgb) / 0.3);
+}
+.mdk-poster .mdk-play {
+  /* Always pointer-events:none — this layer only paints the dim backdrop + centers
+     the icon. It must never intercept clicks, even on hover (hovering with a mouse
+     always precedes clicking, so re-enabling events here would swallow every click). */
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: 0.2s; background: rgba(0, 0, 0, 0.25);
+}
+.mdk-card:hover .mdk-poster .mdk-play { opacity: 1; }
+.mdk-poster .mdk-play span {
+  width: 48px; height: 48px; border-radius: 50%; background: rgb(var(--accent-rgb));
+  color: #130d1c; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  pointer-events: auto; cursor: pointer;
+}
+.mdk-poster .mdk-play svg { width: 20px; height: 20px; fill: currentColor; }
+.mdk-badge {
+  position: absolute; top: 9px; left: 9px; font-size: 10px; font-weight: 700;
+  color: #130d1c; background: rgb(var(--accent-rgb)); padding: 3px 8px; border-radius: 999px;
+}
+.mdk-rbadge {
+  position: absolute; top: 9px; right: 9px; font-size: 11px; font-weight: 700;
+  color: #ffd479; background: rgba(0, 0, 0, 0.55); padding: 3px 8px; border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+.mdk-pbar { width: 100%; padding: 8px; }
+.mdk-pbar i { display: block; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); }
+.mdk-pbar i > b { display: block; height: 100%; border-radius: 2px; background: rgb(var(--accent-rgb)); }
+.mdk-card .mdk-ct {
+  font-size: 13px; color: rgba(255, 255, 255, 0.9); margin-top: 9px; font-weight: 500;
+  line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mdk-card .mdk-cs { font-size: 11.5px; color: #9b92ad; margin-top: 2px; }
+
+/* Bento tiles */
+.mdk-bento { display: grid; gap: 16px; }
+.mdk-metric .mdk-n { font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; }
+.mdk-metric .mdk-l { color: #9b92ad; font-size: 12.5px; margin-top: 3px; }

@@ -1,0 +1,95 @@
+/* Modern-mode episode-picker page (prototype: watch.html) */
+
+.mdp-watch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.mdp-watch-ep {
+  position: relative;
+  aspect-ratio: 1.5 / 1;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.15s;
+  font-family: inherit;
+  color: #f5f0ff;
+  overflow: hidden;
+  padding: 4px;
+  text-align: center;
+}
+.mdp-watch-ep:hover {
+  border-color: rgb(var(--accent-rgb) / 0.5);
+  background: rgba(255, 255, 255, 0.07);
+}
+.mdp-watch-ep.mdp-on {
+  border-color: rgb(var(--accent-rgb));
+  background: rgb(var(--accent-rgb) / 0.1);
+}
+.mdp-watch-ep.mdp-watched {
+  color: #9b92ad;
+}
+.mdp-watch-ep.mdp-filler {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.mdp-watch-ep b {
+  font-size: 20px;
+  font-family: 'Space Grotesk', sans-serif;
+  line-height: 1.1;
+}
+.mdp-watch-ep .mdp-watch-name {
+  font-size: 9.5px;
+  color: #9b92ad;
+  line-height: 1.2;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mdp-watch-done {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--accent-rgb));
+}
+.mdp-watch-filler-mark {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(245, 158, 11, 0.9);
+}
+.mdp-watch-resume-lbl {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 3px;
+  font-size: 9px;
+  color: rgb(var(--accent-soft-rgb));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mdp-watch-pbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.mdp-watch-pbar > b {
+  display: block;
+  height: 100%;
+  background: rgb(var(--accent-rgb));
+}

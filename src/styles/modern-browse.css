@@ -1,0 +1,34 @@
+/* Modern Browse page — hero spotlight (home.html) + catalog (browse.html) */
+.mdp-browse-hero {
+  position: relative; overflow: hidden; min-height: 340px; display: flex; align-items: flex-end;
+  margin-bottom: 8px;
+  /* Plain gradient, no poster art — release posters are portrait (2:3) and crop badly
+     when stretched to cover a wide short banner (a stray blown-up eye/face). */
+  background:
+    radial-gradient(120% 130% at 82% -10%, rgb(var(--accent-rgb) / 0.4), transparent 55%),
+    linear-gradient(115deg, #2a1650, #130c22 55%, #0b0812);
+}
+.mdp-browse-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(7, 6, 11, 0.6), transparent 60%);
+}
+.mdp-browse-hero-in { position: relative; padding: 34px 36px 30px; max-width: 640px; }
+.mdp-browse-kick {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgb(var(--accent-soft-rgb)); margin-bottom: 12px;
+}
+.mdp-browse-hero-in h1 { font-size: 40px; line-height: 1.04; margin-bottom: 14px; }
+.mdp-browse-desc {
+  color: rgba(255, 255, 255, 0.72); font-size: 14px; line-height: 1.55; max-width: 560px; margin: 12px 0 20px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+@media (max-width: 640px) {
+  .mdp-browse-hero { min-height: 260px; }
+  .mdp-browse-hero-in { padding: 22px 18px 22px; }
+  .mdp-browse-hero-in h1 { font-size: 28px; }
+}
+
+/* Filter bar */
+.mdp-browse-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.mdp-browse-sep { width: 1px; height: 20px; background: rgba(255, 255, 255, 0.09); margin: 0 4px; }
+.mdp-browse-genrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 26px; }

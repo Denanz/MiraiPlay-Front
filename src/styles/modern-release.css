@@ -1,0 +1,53 @@
+/* Modern-mode layout specifics for ReleasePage (see modern-kit.css for shared atoms) */
+.mdp-release-backdrop {
+  position: relative;
+  height: 300px;
+  margin: -34px -40px 0;
+  overflow: hidden;
+  border-radius: 0;
+  /* Plain gradient, no poster art — same reasoning as the Browse hero: posters are
+     portrait (2:3) and crop badly when blurred/stretched behind a wide short banner. */
+  background:
+    radial-gradient(90% 120% at 70% 0%, rgb(var(--accent-rgb) / 0.4), transparent 60%),
+    linear-gradient(120deg, #2a1650, #130c22);
+}
+@media (max-width: 640px) { .mdp-release-backdrop { margin: -20px -16px 0; height: 220px; } }
+.mdp-release-backdrop::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(0deg, #07060b 4%, rgba(7, 6, 11, 0.4) 55%, transparent);
+}
+
+.mdp-release-head {
+  position: relative;
+  margin-top: -120px;
+  display: flex;
+  gap: 28px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.mdp-release-pos {
+  width: 170px; aspect-ratio: 2 / 3; border-radius: 18px; flex-shrink: 0;
+  object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+.mdp-release-head h1 { font-size: 34px; line-height: 1.05; }
+.mdp-release-titmeta { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.mdp-release-cta { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+
+.mdp-release-layout { display: grid; grid-template-columns: 1fr 300px; gap: 22px; margin-top: 30px; }
+/* Grid tracks default to min-width:auto, i.e. the content's min-content size — a long
+   unwrapped row (screenshots strip, watch-order list) can force the 1fr track wider
+   than its share, pushing the 300px aside off-screen. Clamp both tracks to their
+   assigned width and let their own content scroll/wrap internally instead. */
+.mdp-release-layout > * { min-width: 0; }
+@media (max-width: 960px) { .mdp-release-layout { grid-template-columns: 1fr; } }
+
+.mdp-release-stars i { color: rgba(255, 255, 255, 0.18); font-size: 22px; cursor: pointer; font-style: normal; }
+.mdp-release-stars i.on { color: rgb(var(--accent-rgb)); }
+
+.mdp-release-info .r {
+  display: flex; justify-content: space-between; gap: 10px; padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09); font-size: 13.5px;
+}
+.mdp-release-info .r:last-child { border: 0; }
+.mdp-release-info .r b { color: #9b92ad; font-weight: 400; }
