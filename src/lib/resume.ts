@@ -28,6 +28,9 @@ export async function resumeWatch(navigate: NavigateFunction, entry: WatchProgre
         releaseName: entry.releaseTitle,
         dubberName: entry.typeName,
         sourceName: entry.sourceName,
+        // Без typeId панель серий не может получить их названия. Записи из
+        // истории аккаунта его не содержат — там страхует резолв по sourceId.
+        typeId: entry.typeId,
       },
     })
   } catch {

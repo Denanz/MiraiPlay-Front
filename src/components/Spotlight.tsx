@@ -1,27 +1,55 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFilter, extractReleases, hasGrade } from '../api/releases'
+import { getFilter, extractReleases, getRelease, hasGrade } from '../api/releases'
 import type { Release } from '../api/releases'
+import { getSpotlightOverride } from '../api/admin'
+import { SESSION_SEED, mulberry32, shuffled } from '../lib/sessionRandom'
+
+/** Из скольких верхних тайтлов выбирается баннер: шире — разнообразнее, но слабее. */
+const SPOTLIGHT_POOL = 10
 import { img } from '../lib/img'
 import { useDesign } from '../lib/design'
 
-// Featured spotlight: most popular candidate that's actually watchable right now
+// Featured spotlight: an owner-pinned title if one is set (see AdminPage),
+// otherwise the most popular candidate that's actually watchable right now
 // (skip "Анонс" — status.id 3 — since there are no episodes to watch yet).
 // Note: release.status_id is always 0 (dead field) — the real status is nested.
 export default function Spotlight() {
   const navigate = useNavigate()
   const design = useDesign()
-  const [candidates, setCandidates] = useState<Release[] | null>(null)
+  const [hero, setHero] = useState<Release | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    getFilter(0, { sort: 1, extended_mode: true, genres: [], is_genres_exclude_mode_enabled: false })
-      .then((d) => { if (!cancelled) setCandidates(extractReleases(d)) })
-      .catch(() => { if (!cancelled) setCandidates([]) })
+    ;(async () => {
+      try {
+        const overrideId = await getSpotlightOverride()
+        if (overrideId) {
+          const data = await getRelease(overrideId)
+          const pinned = data.release
+            || (Array.isArray(data.content) ? data.content[0] : data.content?.content?.[0])
+            || null
+          if (pinned) { if (!cancelled) setHero(pinned); return }
+        }
+      } catch { /* fall through to the automatic pick */ }
+
+      try {
+        const d = await getFilter(0, { sort: 1, extended_mode: true, genres: [], is_genres_exclude_mode_enabled: false })
+        // Раньше брался строго первый подходящий тайтл, поэтому баннер был одним и
+        // тем же при каждом входе. Теперь выбираем случайный из верхушки выдачи —
+        // она отсортирована по рейтингу, так что качество не проседает.
+        // Закрепление админом (ветка выше) этой случайности не касается.
+        const eligible = extractReleases(d).filter((r) => r.status?.id === 1 || r.status?.id === 2)
+        const rnd = mulberry32(SESSION_SEED ^ 0x9e3779b9) // иной поток, чем у ленты рекомендаций
+        const pick = eligible.length ? shuffled(eligible.slice(0, SPOTLIGHT_POOL), rnd)[0] : null
+        if (!cancelled) setHero(pick)
+      } catch {
+        if (!cancelled) setHero(null)
+      }
+    })()
     return () => { cancelled = true }
   }, [])
 
-  const hero = candidates?.find((r) => r.status?.id === 1 || r.status?.id === 2) || null
   if (!hero) return null
 
   const heroGenres = hero.genres ? hero.genres.split(',').map(g => g.trim()).filter(Boolean).slice(0, 3) : []

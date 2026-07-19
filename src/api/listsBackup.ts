@@ -27,10 +27,29 @@ export async function exportLists(onProgress?: (s: string) => void): Promise<Bac
 }
 
 export async function importLists(items: BackupItem[], onProgress?: (done: number, total: number) => void): Promise<number> {
+  // setListStatus needs each release's REAL current list to remove it before
+  // adding the new one — hardcoding 0 (no prior list) skips that delete step,
+  // so a release already in a different list ends up belonging to two lists
+  // at once instead of being moved. Look up the account's actual current
+  // membership first.
+  const currentStatus = new Map<number, number>()
+  for (const listId of [1, 2, 3, 4, 5]) {
+    for (let pg = 0; pg < 80; pg++) {
+      const data = await getProfileList(listId, pg).catch(() => null)
+      const arr = data?.content || []
+      if (!arr.length) break
+      for (const it of arr) {
+        const id = it.release?.id ?? it.id
+        if (id) currentStatus.set(id, listId)
+      }
+      if (arr.length < 20) break
+    }
+  }
+
   let done = 0, ok = 0
   for (const it of items) {
     if (it.releaseId && LIST_NAMES[it.listId]) {
-      try { await setListStatus(it.releaseId, it.listId, 0); ok++ } catch { /* ignore */ }
+      try { await setListStatus(it.releaseId, it.listId, currentStatus.get(it.releaseId) || 0); ok++ } catch { /* ignore */ }
     }
     done++
     onProgress?.(done, items.length)

@@ -80,6 +80,12 @@ export async function getSources(releaseId: string | number, typeId: number) {
   })
 }
 
+/** Сбросить кеш списка серий — нужен после ручной отметки просмотра, иначе
+ *  повторное открытие панели покажет старое значение is_watched. */
+export function invalidateEpisodes(releaseId: string | number, typeId: number, sourceId: number) {
+  memCache.delete(`eps:${releaseId}:${typeId}:${sourceId}`)
+}
+
 export async function getEpisodes(releaseId: string | number, typeId: number, sourceId: number) {
   return cached(`eps:${releaseId}:${typeId}:${sourceId}`, async () => {
     const res = await api.get<{ code: number; episodes?: Episode[] }>(`/api/v1/episode/${releaseId}/${typeId}/${sourceId}`)
@@ -94,6 +100,12 @@ export async function getEpisodeTarget(releaseId: string | number, sourceId: num
 
 export async function markWatched(releaseId: string | number, sourceId: number, position: number) {
   const res = await api.get(`/api/v1/episode/watch/${releaseId}/${sourceId}/${position}`)
+  return res.data
+}
+
+/** Снять отметку просмотра. Парная к markWatched — обе отражаются в is_watched. */
+export async function unmarkWatched(releaseId: string | number, sourceId: number, position: number) {
+  const res = await api.get(`/api/v1/episode/unwatch/${releaseId}/${sourceId}/${position}`)
   return res.data
 }
 

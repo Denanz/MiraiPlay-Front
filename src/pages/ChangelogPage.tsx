@@ -42,7 +42,11 @@ export default function ChangelogPage() {
               {entry.date && <span className="text-xs text-muted ml-auto">{fmtDate(entry.date)}</span>}
             </div>
 
-            <ul className="mt-2 space-y-1.5">
+            {entry.intro && (
+              <p className="mt-2 text-sm text-text/75 leading-relaxed">{entry.intro}</p>
+            )}
+
+            <ul className="mt-2.5 space-y-1.5">
               {entry.changes.map((c, j) => (
                 <li key={j} className="flex gap-2 text-sm text-text/85 leading-relaxed">
                   <span className="text-accent/60 shrink-0">•</span>

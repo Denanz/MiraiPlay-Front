@@ -5,6 +5,7 @@ import { getProfile, type AnixartProfile } from '../api/profile'
 import { useAuth } from '../store/auth'
 import Spinner from '../components/Spinner'
 import { img } from '../lib/img'
+import { shareWrappedCard } from '../lib/wrappedImage'
 
 function hoursFromMinutes(min?: number): string {
   if (!min || min <= 0) return '0'
@@ -70,7 +71,27 @@ export default function WrappedPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <button onClick={() => navigate(-1)} className="btn-ghost mb-6">← Назад</button>
+      <div className="flex items-center gap-2 mb-6">
+        <button onClick={() => navigate(-1)} className="btn-ghost">← Назад</button>
+        <button
+          onClick={() => shareWrappedCard({
+            login: profile?.login ?? '',
+            episodes: headline[0].v,
+            hours: headline[1].v,
+            titles: headline[2].v,
+            genre: headline[3].v,
+            binge: stats.longestBinge
+              ? {
+                  title: stats.longestBinge.title_ru ?? '',
+                  episode: stats.longestBinge.last_view_episode?.position,
+                }
+              : null,
+          })}
+          className="btn-primary ml-auto !py-2 text-sm"
+        >
+          Сохранить картинкой
+        </button>
+      </div>
 
       <div className="text-center mb-10">
         <div className="text-5xl mb-3">✨</div>

@@ -14,6 +14,8 @@ const moreLinks = [
   { to: '/schedule', label: 'Расписание' },
   { to: '/achievements', label: 'Ачивки' },
   { to: '/gallery', label: 'Галерея' },
+  { to: '/diary', label: 'Дневник' },
+  { to: '/pick', label: 'Выбери за меня' },
   { to: '/settings', label: 'Настройки' },
 ]
 

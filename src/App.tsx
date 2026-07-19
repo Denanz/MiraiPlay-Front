@@ -72,9 +72,12 @@ const WatchPage = lazy(() => import('./pages/WatchPage'))
 const PlayerPage = lazy(() => import('./pages/PlayerPage'))
 const BookmarksPage = lazy(() => import('./pages/BookmarksPage'))
 const StatsPage = lazy(() => import('./pages/StatsPage'))
+const DiaryPage = lazy(() => import('./pages/DiaryPage'))
+const PickPage = lazy(() => import('./pages/PickPage'))
 const WrappedPage = lazy(() => import('./pages/WrappedPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 function RouteFallback() {
   return (
@@ -138,9 +141,13 @@ export default function App() {
           <Route path="watch/:id" element={<WatchPage />} />
           <Route path="bookmarks" element={<BookmarksPage />} />
           <Route path="stats" element={<StatsPage />} />
+          <Route path="diary" element={<DiaryPage />} />
+          <Route path="pick" element={<PickPage />} />
           <Route path="wrapped" element={<WrappedPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="changelog" element={<ChangelogPage />} />
+          {/* Not linked from any nav menu — owner-only, gated by its own admin key. */}
+          <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>
       </Suspense>

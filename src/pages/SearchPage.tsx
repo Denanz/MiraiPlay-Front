@@ -39,8 +39,9 @@ export default function SearchPage() {
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault()
     if (!query.trim()) return
+    // Updating the URL params is enough — the effect below reacts to `params`
+    // and runs the search. Calling runSearch() here too fired it twice.
     setParams({ q: query.trim() })
-    runSearch(query.trim())
   }
 
   const design = useDesign()

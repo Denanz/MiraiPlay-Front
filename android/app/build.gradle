@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// Ключ подписи и пароли лежат в android/keystore.properties (вне git, см. .gitignore).
+// Файла может не быть — например, на чужой машине или в CI без секретов; тогда
+// release собирается неподписанным, и deploy.sh ловит это проверкой apksigner,
+// а не выкатывает молча сломанный APK.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def hasKeystore = keystorePropertiesFile.exists()
+if (hasKeystore) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "fun.denanz.anime"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +18,8 @@ android {
         applicationId "fun.denanz.anime"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 22
-        versionName "2.5"
+        versionCode 36
+        versionName "2.12.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +27,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasKeystore) {
+                // storeFile указан относительно каталога android/, поэтому резолвим
+                // через rootProject, а не file() — иначе путь уехал бы в android/app/.
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
+            // R8 пока выключен намеренно: он умеет ломать плагины Capacitor,
+            // которые ищут классы через рефлексию. Включать отдельным шагом.
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

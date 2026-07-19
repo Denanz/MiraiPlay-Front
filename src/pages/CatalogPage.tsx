@@ -65,7 +65,7 @@ function FilterDropdown({
         <>
           <div className="fixed inset-0 z-40" onClick={onClose} />
           <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} mt-2 z-50 min-w-[200px] max-w-[min(80vw,360px)]
-                           p-3 rounded-xl bg-[#14111f] border border-white/10 shadow-2xl`}>
+                           p-3 rounded-xl bg-elevated border border-white/10 shadow-2xl`}>
             {children}
           </div>
         </>
@@ -135,17 +135,25 @@ export default function CatalogPage() {
     return body
   }, [activeTab, sort, genres, yearFrom, yearTo, studio, status])
 
+  // Guards against out-of-order responses: rapid filter changes (or a filter
+  // change landing while a load-more is in flight) can fire overlapping
+  // requests. Only the response matching the latest issued request is applied
+  // — an earlier one resolving later would otherwise clobber fresher state.
+  const requestIdRef = useRef(0)
+
   const loadReleases = useCallback(async (pg: number, replace = false) => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     try {
       const data = await getFilter(pg, buildBody(pg))
+      if (requestId !== requestIdRef.current) return
       const items: Release[] = extractReleases(data)
       setReleases(prev => replace ? items : [...prev, ...items])
       setHasMore(items.length >= 20)
     } catch {
-      if (replace) setReleases([])
+      if (requestId === requestIdRef.current && replace) setReleases([])
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [buildBody])
 

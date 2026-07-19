@@ -15,6 +15,11 @@ html, body {
   color: #f5f0ff;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* Kill the WebView rubber-band/bounce so the page can't be dragged past its
+     bounds (most visible on Schedule and inside the immersive player, where the
+     overscroll gap exposed the background). Pairs with overScrollMode=never on
+     the native WebView in MainActivity. */
+  overscroll-behavior: none;
 }
 
 /* Display font for headings — expressive titles over neutral body */

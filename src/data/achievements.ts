@@ -67,7 +67,10 @@ function milestones(
     tier: TIERS[Math.min(i, TIERS.length - 1)],
     check: (c: AchContext) => {
       const v = value(c)
-      return { unlocked: v >= s.n, progress: Math.min(v, s.n), target: s.n }
+      // Most stats here are already integers, but registerYears is a float —
+      // floor (not round) for display so progress never shows "n/n" (looking
+      // complete) while `unlocked` is still false for a value just under n.
+      return { unlocked: v >= s.n, progress: Math.min(Math.floor(v), s.n), target: s.n }
     },
   }))
 }
@@ -194,8 +197,11 @@ const generic: Achievement[] = [
   {
     id: 'taste-focused', title: 'Свой жанр', desc: 'Один жанр — более 40% просмотра', icon: '🎯', category: 'Вкус', tier: 'silver',
     check: c => {
-      const top = c.genres[0]?.percentage ?? 0
-      return { unlocked: top >= 40, progress: Math.min(Math.round(top), 40), target: 40 }
+      // Round once and compare/display the same value — rounding only the
+      // displayed progress (not the unlocked check) could show "40/40"
+      // (looking complete) while unlocked stayed false for e.g. top=39.6.
+      const top = Math.round(c.genres[0]?.percentage ?? 0)
+      return { unlocked: top >= 40, progress: Math.min(top, 40), target: 40 }
     },
   },
 ]

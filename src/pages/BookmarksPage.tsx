@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getHistory, getFavorites, getProfileList, extractBookmarkRelease } from '../api/bookmarks'
+import type { BookmarkItem } from '../api/bookmarks'
 import ReleaseCard from '../components/ReleaseCard'
 import Spinner from '../components/Spinner'
 import type { Release } from '../api/releases'
+import { hasGrade } from '../api/releases'
 import { useDesign } from '../lib/design'
 
 const SORTS = [
@@ -15,13 +17,13 @@ const SORTS = [
 type SortKey = typeof SORTS[number]['value']
 
 const TABS = [
-  { label: 'История', loader: () => getHistory() },
-  { label: 'Избранное', loader: () => getFavorites() },
-  { label: 'Смотрю', loader: () => getProfileList(1) },
-  { label: 'В планах', loader: () => getProfileList(2) },
-  { label: 'Просмотрено', loader: () => getProfileList(3) },
-  { label: 'Отложено', loader: () => getProfileList(4) },
-  { label: 'Брошено', loader: () => getProfileList(5) },
+  { label: 'История', loader: (page: number) => getHistory(page) },
+  { label: 'Избранное', loader: (page: number) => getFavorites(page) },
+  { label: 'Смотрю', loader: (page: number) => getProfileList(1, page) },
+  { label: 'В планах', loader: (page: number) => getProfileList(2, page) },
+  { label: 'Просмотрено', loader: (page: number) => getProfileList(3, page) },
+  { label: 'Отложено', loader: (page: number) => getProfileList(4, page) },
+  { label: 'Брошено', loader: (page: number) => getProfileList(5, page) },
 ]
 
 export default function BookmarksPage() {
@@ -48,31 +50,48 @@ export default function BookmarksPage() {
       list = [...list].sort((a, b) => {
         if (sort === 'title') return (a.title_ru || '').localeCompare(b.title_ru || '')
         if (sort === 'year') return Number(b.year || 0) - Number(a.year || 0)
-        return (b.grade || 0) - (a.grade || 0)
+        // Unrated titles carry a placeholder grade (e.g. 5.00 with 0 votes) —
+        // treat them as 0 so they sink below genuinely-rated titles instead of
+        // sorting as if they had a real ~5.0 community score.
+        return (hasGrade(b) ? b.grade! : 0) - (hasGrade(a) ? a.grade! : 0)
       })
     }
     return list
   }, [items, query, sort])
 
-  // React to ?tab= changes even when already mounted on this route.
+  // React to ?tab= changes even when already mounted on this route — including
+  // browser back/forward landing back on the bare (no ?tab=) URL, which must
+  // restore the default "История" tab rather than leaving the last-active one.
   const tabParam = searchParams.get('tab')
   useEffect(() => {
-    if (!tabParam) return
-    const i = TABS.findIndex(t => t.label === tabParam)
-    if (i >= 0) setActiveTab(i)
+    const i = tabParam ? TABS.findIndex(t => t.label === tabParam) : 0
+    setActiveTab(i >= 0 ? i : 0)
   }, [tabParam])
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
     setItems([])
-    TABS[activeTab].loader()
-      .then(data => {
-        const rawItems = data.content || []
-        const releases = rawItems.map(extractBookmarkRelease).filter(Boolean) as Release[]
+    const loader = TABS[activeTab].loader
+    ;(async () => {
+      const all: BookmarkItem[] = []
+      for (let page = 0; page < 40; page++) {
+        let pageItems: BookmarkItem[]
+        try {
+          const data = await loader(page)
+          pageItems = data.content || []
+        } catch {
+          break
+        }
+        all.push(...pageItems)
+        if (pageItems.length < 20) break
+      }
+      if (!cancelled) {
+        const releases = all.map(extractBookmarkRelease).filter(Boolean) as Release[]
         setItems(releases)
-      })
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
+      }
+    })().finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [activeTab])
 
   if (design === 'modern') {

@@ -16,12 +16,14 @@ import { toggleFavorite, setListStatus } from '../api/bookmarks'
 import { getWatchProgress, getReleaseProgress } from '../api/episodes'
 import type { WatchProgressEntry } from '../api/episodes'
 import { getDiary, saveDiary } from '../api/diary'
+import { getAwaitFull, setAwaitFull } from '../api/notify'
 import { resumeWatch } from '../lib/resume'
 import DOMPurify from 'dompurify'
 import type { Release, LinkedAnime } from '../api/releases'
 import Spinner from '../components/Spinner'
 import ReleaseCard from '../components/ReleaseCard'
 import { img } from '../lib/img'
+import { accentFromPoster, applyAccent } from '../lib/posterTheme'
 import { useDesign } from '../lib/design'
 import '../styles/modern-release.css'
 
@@ -180,12 +182,19 @@ export default function ReleasePage() {
   const [diaryRating, setDiaryRating] = useState(0)
   const [diarySaving, setDiarySaving] = useState(false)
   const [diarySaved, setDiarySaved] = useState(false)
+  // «Подожду, пока выйдет целиком»: вместо еженедельных пингов — один сигнал,
+  // когда сезон закрылся. Живёт в подписке Telegram, поэтому без привязки
+  // включить нельзя, и об этом надо честно сказать.
+  const [awaitFull, setAwaitFullState] = useState(false)
+  const [awaitMsg, setAwaitMsg] = useState('')
 
   useEffect(() => {
     if (!id) return
+    let cancelled = false
     setLoading(true)
     getRelease(id)
       .then(data => {
+        if (cancelled) return
         const r = data.release || (Array.isArray(data.content) ? data.content[0] : data.content?.content?.[0]) || null
         setRelease(r)
         if (r) {
@@ -193,10 +202,45 @@ export default function ReleasePage() {
           setListStatusState(r.profile_list_status || 0)
         }
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!cancelled) setLoading(false) })
     // Personal 1–10 rating lives on our own server, not Anixart.
-    getMyRating(Number(id)).then(setMyVote).catch(() => {})
+    getMyRating(Number(id)).then(v => { if (!cancelled) setMyVote(v) }).catch(() => {})
+    return () => { cancelled = true }
   }, [id])
+
+  // Подкраска интерфейса под постер, пока открыт этот тайтл. Откат обязателен:
+  // иначе цвет останется висеть на всех остальных страницах.
+  useEffect(() => {
+    if (!release?.id) return
+    let cancelled = false
+    getAwaitFull().then((ids) => {
+      if (!cancelled) setAwaitFullState(ids.includes(String(release.id)))
+    })
+    return () => { cancelled = true }
+  }, [release?.id])
+
+  const handleAwaitFull = async () => {
+    if (!release) return
+    const next = !awaitFull
+    setAwaitFullState(next)
+    const ok = await setAwaitFull(release.id, next)
+    if (!ok) {
+      setAwaitFullState(!next)
+      setAwaitMsg('Сначала привяжите Telegram в настройках — уведомлять некуда')
+      setTimeout(() => setAwaitMsg(''), 4000)
+    }
+  }
+
+  useEffect(() => {
+    if (!release?.image) return
+    let revert: (() => void) | null = null
+    let cancelled = false
+    accentFromPoster(img(release.image)).then((rgb) => {
+      if (cancelled || !rgb) return
+      revert = applyAccent(rgb)
+    })
+    return () => { cancelled = true; revert?.() }
+  }, [release?.image])
 
   useEffect(() => {
     if (!release) return
@@ -250,10 +294,12 @@ export default function ReleasePage() {
   useEffect(() => {
     if (!release) return
     let cancelled = false
+    setDiaryText('')
+    setDiaryRating(0)
     getDiary(release.id).then((e) => {
-      if (cancelled || !e) return
-      setDiaryText(e.text || '')
-      setDiaryRating(e.rating || 0)
+      if (cancelled) return
+      setDiaryText(e?.text || '')
+      setDiaryRating(e?.rating || 0)
     }).catch(() => {})
     return () => { cancelled = true }
   }, [release])
@@ -262,7 +308,12 @@ export default function ReleasePage() {
     if (!release) return
     setDiarySaving(true)
     try {
-      await saveDiary(release.id, diaryText, diaryRating)
+      // Передаём название и постер, чтобы лента дневника показывала их сразу,
+      // не разрешая id в тайтл на каждой записи.
+      await saveDiary(release.id, diaryText, diaryRating, {
+        title: release.title_ru,
+        image: release.image,
+      })
       setDiarySaved(true)
       setTimeout(() => setDiarySaved(false), 1800)
     } finally {
@@ -333,7 +384,7 @@ export default function ReleasePage() {
 
   const meta: Array<[string, React.ReactNode]> = []
   if (release.year) meta.push(['Год', release.year])
-  const statusLabel = { 1: 'Онгоинг', 2: 'Вышел', 3: 'Анонс' }[release.status_id ?? 0]
+  const statusLabel = { 1: 'Онгоинг', 2: 'Вышел', 3: 'Анонс' }[release.status?.id ?? 0]
   if (statusLabel) meta.push(['Статус', statusLabel])
   if (release.studio) {
     meta.push([
@@ -449,6 +500,9 @@ export default function ReleasePage() {
                 </button>
               )}
               <button onClick={handleFavorite} className="mdk-btn mdk-btn-ghost">{isFavorite ? '★ В избранном' : '☆ В избранное'}</button>
+              <button onClick={handleAwaitFull} className="mdk-btn mdk-btn-ghost" title="Один сигнал, когда сезон выйдет целиком">
+                {awaitFull ? '⏳ Жду полного выхода' : '⏳ Дождусь целиком'}
+              </button>
               <div className="relative">
                 <button onClick={() => { if (!listStatus) handleListStatus(1); else setListMenuOpen(o => !o) }} className="mdk-btn mdk-btn-ghost">
                   {listStatus ? LIST_NAMES[listStatus] : '+ Список'} ▾
@@ -713,7 +767,15 @@ export default function ReleasePage() {
             >
               {isFavorite ? '★ В избранном' : '☆ В избранное'}
             </button>
+            <button
+              onClick={handleAwaitFull}
+              title="Один сигнал, когда сезон выйдет целиком — вместо уведомления о каждой серии"
+              className={`btn-ghost ${awaitFull ? '!border-accent/50 !text-accent !bg-accent/10' : ''}`}
+            >
+              {awaitFull ? '⏳ Жду полного выхода' : '⏳ Дождусь целиком'}
+            </button>
           </div>
+          {awaitMsg && <div className="text-xs text-amber-300 mt-2">{awaitMsg}</div>}
 
           <div className="relative inline-block mt-4">
             <div className="flex">

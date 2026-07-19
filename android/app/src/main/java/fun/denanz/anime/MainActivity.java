@@ -2,6 +2,7 @@ package fun.denanz.anime;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -22,6 +23,12 @@ public class MainActivity extends BridgeActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             getWindow().getAttributes().layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
+        // Disable the native overscroll glow/stretch so the page can't be dragged
+        // past its bounds (CSS overscroll-behavior covers Chromium, this covers
+        // the WebView's own overscroll on older Android).
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
         }
         applySystemUi();
     }

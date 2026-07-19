@@ -204,6 +204,7 @@ export default function WatchPage() {
           dubberName: selectedType?.name,
           sourceName: selectedSource.name,
           totalEpisodes,
+          typeId: selectedType?.id, // панель серий берёт отсюда настоящие названия
         },
       })
     } catch (e) {

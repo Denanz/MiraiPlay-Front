@@ -5,6 +5,7 @@ import { getRelease, buildRecommendations, type Release } from '../api/releases'
 import { img } from '../lib/img'
 import { WatchRoom, type WtContent } from '../api/together'
 import QueuePanel from '../components/QueuePanel'
+import EpisodesPanel from '../components/EpisodesPanel'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { ScreenOrientation } from '@capacitor/screen-orientation'
 import { useDesign } from '../lib/design'
@@ -22,6 +23,8 @@ interface PlayerState {
   dubberName?: string
   sourceName?: string
   totalEpisodes?: number
+  /** Нужен панели серий для настоящих названий; у гостя комнаты может отсутствовать. */
+  typeId?: number
 }
 
 const API_BASE = 'https://aniapi.denanz.fun'
@@ -92,6 +95,7 @@ export default function PlayerPage() {
   const [joining, setJoining] = useState(false)
   const [queue, setQueue] = useState<WtContent[]>([])
   const [showQueue, setShowQueue] = useState(false)
+  const [showEpisodes, setShowEpisodes] = useState(false)
   const queueRef = useRef<WtContent[]>([])
   queueRef.current = queue
 
@@ -177,7 +181,7 @@ export default function PlayerPage() {
       if (e.origin !== API_BASE) return
       const d = e.data
       if (!d || typeof d !== 'object') return
-      if (typeof d.__player === 'string') { actionRef.current(d.__player); return }
+      if (typeof d.__player === 'string') { actionRef.current(d.__player, d); return }
       if (!d.__wt) return
       if (d.__wt === 'ready') { primeIframe(); postMeta(); return }
       if (d.__wt === 'state' && roomRef.current?.role === 'host') {
@@ -263,58 +267,50 @@ export default function PlayerPage() {
     try { await navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* ignore */ }
   }
 
-  const goToNext = async () => {
-    if (!state) return
-    const nextPos = state.position + 1
+  // Переход на серию по номеру. Общая механика для стрелок next/prev и панели серий;
+  // тексты ошибок задаются вызывающим, чтобы «последняя серия» и «первая серия»
+  // читались так же, как раньше.
+  const goToEpisode = async (pos: number, msg?: { missing?: string; failed?: string }) => {
+    if (!state || pos < 1) return
     setLoadingNext(true)
     setNextError('')
     try {
-      const data = await getEpisodeTarget(state.releaseId, state.sourceId, nextPos)
+      // Озвучку могли сменить прямо в плеере — продолжаем в ней, а не в исходной.
+      const sourceId = currentSource() ?? state.sourceId
+      const dubberName = currentDubber()
+      const data = await getEpisodeTarget(state.releaseId, sourceId, pos)
       const rawUrl = data.episode?.url || ''
-      if (!rawUrl) { setNextError('Это последняя серия'); return }
+      if (!rawUrl) { setNextError(msg?.missing ?? 'Серия недоступна'); return }
       const kodikUrl = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl
       const nextState: PlayerState = {
-        ...state, kodikUrl, position: nextPos,
-        episodeName: data.episode?.name || `Эпизод ${nextPos}`,
+        ...state, kodikUrl, position: pos, sourceId, dubberName,
+        episodeName: data.episode?.name || `Эпизод ${pos}`,
       }
       saveWatchProgress({
-        releaseId: state.releaseId, releaseTitle: state.releaseName, sourceId: state.sourceId,
-        sourceName: state.sourceName, typeName: state.dubberName, episodePosition: nextPos,
+        releaseId: state.releaseId, releaseTitle: state.releaseName, sourceId,
+        sourceName: state.sourceName, typeName: dubberName, episodePosition: pos,
         episodeName: nextState.episodeName, updatedAt: Date.now(),
       })
       setState(nextState) // iframe reloads (key) + host useEffect re-sends content
     } catch {
-      setNextError('Не удалось загрузить следующую серию')
+      setNextError(msg?.failed ?? 'Не удалось загрузить серию')
     } finally {
       setLoadingNext(false)
     }
   }
 
-  const goToPrev = async () => {
+  const goToNext = () => {
+    if (!state) return
+    goToEpisode(state.position + 1, {
+      missing: 'Это последняя серия', failed: 'Не удалось загрузить следующую серию',
+    })
+  }
+
+  const goToPrev = () => {
     if (!state || role === 'guest' || state.position <= 1) return
-    const prevPos = state.position - 1
-    setLoadingNext(true)
-    setNextError('')
-    try {
-      const data = await getEpisodeTarget(state.releaseId, state.sourceId, prevPos)
-      const rawUrl = data.episode?.url || ''
-      if (!rawUrl) { setNextError('Это первая серия'); return }
-      const kodikUrl = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl
-      const prevState: PlayerState = {
-        ...state, kodikUrl, position: prevPos,
-        episodeName: data.episode?.name || `Эпизод ${prevPos}`,
-      }
-      saveWatchProgress({
-        releaseId: state.releaseId, releaseTitle: state.releaseName, sourceId: state.sourceId,
-        sourceName: state.sourceName, typeName: state.dubberName, episodePosition: prevPos,
-        episodeName: prevState.episodeName, updatedAt: Date.now(),
-      })
-      setState(prevState)
-    } catch {
-      setNextError('Не удалось загрузить предыдущую серию')
-    } finally {
-      setLoadingNext(false)
-    }
+    goToEpisode(state.position - 1, {
+      missing: 'Это первая серия', failed: 'Не удалось загрузить предыдущую серию',
+    })
   }
 
   // Toggle screen orientation from the in-player rotate button (native only).
@@ -327,14 +323,34 @@ export default function PlayerPage() {
   }
 
   // In-player intents (Back / Prev / Next / Together / Queue / Rotate) from the iframe.
-  const actionRef = useRef<(action: string) => void>(() => {})
-  actionRef.current = (action: string) => {
+  // Смена озвучки происходит ВНУТРИ iframe и намеренно не идёт через setState:
+  // playerUrl содержит sourceId, а у iframe key={playerUrl} — любое изменение
+  // состояния перемонтировало бы его и сбросило воспроизведение, ради чего всё
+  // и затевалось. Поэтому держим живой sourceId в ref и подмешиваем его там,
+  // где он действительно нужен: переход по сериям и запись прогресса.
+  const liveDubRef = useRef<{ sourceId: number; dubberName?: string } | null>(null)
+  const currentSource = () => liveDubRef.current?.sourceId ?? state?.sourceId
+  const currentDubber = () => liveDubRef.current?.dubberName ?? state?.dubberName
+  // Новая серия грузится уже в выбранной озвучке, поэтому ref обнуляем при её смене.
+  useEffect(() => { liveDubRef.current = null }, [state?.releaseId, state?.position])
+
+  const actionRef = useRef<(action: string, data?: Record<string, unknown>) => void>(() => {})
+  actionRef.current = (action: string, data?: Record<string, unknown>) => {
     switch (action) {
+      case 'dub':
+        if (typeof data?.sourceId === 'number') {
+          liveDubRef.current = {
+            sourceId: data.sourceId,
+            dubberName: typeof data.dubberName === 'string' ? data.dubberName : undefined,
+          }
+        }
+        break
       case 'back': roomCode ? leaveRoom() : navigate(-1); break
       case 'next': goToNext(); break
       case 'prev': goToPrev(); break
       case 'together': roomCode ? copyLink() : startRoom(); break
       case 'queue': setShowQueue(true); break
+      case 'episodes': setShowEpisodes(true); break
       case 'rotate': toggleOrientation(); break
     }
   }
@@ -412,6 +428,19 @@ export default function PlayerPage() {
             </div>
           </div>
         )
+      )}
+
+      {showEpisodes && (
+        <EpisodesPanel
+          releaseId={state.releaseId}
+          typeId={state.typeId}
+          sourceId={state.sourceId}
+          position={state.position}
+          totalEpisodes={state.totalEpisodes}
+          readOnly={role === 'guest'}
+          onPick={(pos) => { setShowEpisodes(false); goToEpisode(pos) }}
+          onClose={() => setShowEpisodes(false)}
+        />
       )}
 
       <iframe

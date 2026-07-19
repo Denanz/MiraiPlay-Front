@@ -46,7 +46,7 @@ export async function computeWrapped(maxPages = 30): Promise<WrappedStats> {
     const res = await api.get<{ content?: HistoryRelease[] }>(`/api/v1/history/${page}`)
     const items = res.data?.content || []
     all.push(...items)
-    if (items.length < 25) break // last page
+    if (items.length < 20) break // last page
   }
 
   const genres = new Map<string, number>()
