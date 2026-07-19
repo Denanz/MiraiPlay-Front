@@ -5,6 +5,7 @@ import { getProfile, type AnixartProfile } from '../api/profile'
 import { useAuth } from '../store/auth'
 import { useDesign } from '../lib/design'
 import Spinner from '../components/Spinner'
+import ShikimoriDigest from '../components/ShikimoriDigest'
 import { syncWidget } from '../lib/widgetSync'
 import '../styles/modern-stats.css'
 
@@ -252,6 +253,8 @@ export default function StatsPage() {
             <div className="text-sm text-muted mt-1">{m.label}</div>
           </div>
         ))}
+        <ShikimoriDigest />
+
         <div className="panel p-5">
           <div className="text-2xl sm:text-3xl font-bold text-accent-soft">{streak} 🔥</div>
           <div className="text-sm text-muted mt-1">Дней подряд</div>

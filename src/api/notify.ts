@@ -88,3 +88,27 @@ export async function disconnectShikimori(): Promise<void> {
     await api.post('/api/v1/shikimori/disconnect', { token: token() })
   } catch { /* уже отключено — не страшно */ }
 }
+
+export interface ShikiProfileDigest {
+  nickname: string
+  url: string
+  avatar: string
+  lastOnline: string
+  about: string[]
+  statuses: Array<{ name: string; size: number }>
+  scores: Array<{ score: number; count: number }>
+  types: Array<{ name: string; count: number }>
+}
+
+/** null — Shikimori не подключён либо не ответил. */
+export async function getShikiProfile(): Promise<ShikiProfileDigest | null> {
+  if (!token()) return null
+  try {
+    const { data } = await api.get<{ profile: ShikiProfileDigest }>('/api/v1/shikimori/profile', {
+      params: { token: token() },
+    })
+    return data?.profile ?? null
+  } catch {
+    return null
+  }
+}

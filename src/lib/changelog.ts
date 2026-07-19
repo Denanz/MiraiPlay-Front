@@ -29,7 +29,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.12',
-    date: '2026-07-19',
+    date: '2026-07-18',
     kind: 'feature',
     intro:
       'Аккаунт на Shikimori теперь можно подключить, и всё, что происходит здесь, подхватывается там ' +
@@ -41,7 +41,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.11',
-    date: '2026-07-19',
+    date: '2026-07-17',
     kind: 'feature',
     intro:
       'Охапка разного за один вечер. Главное — экран для тех случаев, когда список открыт, ' +
@@ -55,7 +55,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.10.1',
-    date: '2026-07-19',
+    date: '2026-07-15',
     kind: 'fix',
     intro: 'Мелочь, но глаз цеплялся.',
     changes: [
@@ -64,7 +64,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.10',
-    date: '2026-07-19',
+    date: '2026-07-15',
     kind: 'feature',
     intro:
       'Записи о просмотренном раньше жили каждая внутри своего тайтла и больше на глаза не попадались: ' +
@@ -75,7 +75,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.9',
-    date: '2026-07-19',
+    date: '2026-07-14',
     kind: 'feature',
     intro:
       'Со списком серий стало понятнее — видно, что уже посмотрено, и отметку можно поправить руками, ' +
@@ -88,7 +88,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.8.1',
-    date: '2026-07-19',
+    date: '2026-07-12',
     kind: 'fix',
     intro: 'Быстрая заплатка к тому, что приехало часом раньше.',
     changes: [
@@ -97,7 +97,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.8',
-    date: '2026-07-19',
+    date: '2026-07-12',
     kind: 'feature',
     intro:
       'Большое обновление плеера, и почти всё в нём — про мелочи, которые раздражали каждый вечер. ' +
@@ -113,7 +113,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.7.4',
-    date: '2026-07-16',
+    date: '2026-07-09',
     kind: 'fix',
     intro: 'Две занозы, на которые давно косились.',
     changes: [
@@ -123,7 +123,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.7.3',
-    date: '2026-07-11',
+    date: '2026-07-06',
     kind: 'fix',
     intro: 'День уборки: ничего нового, зато много починенного по мелочи.',
     changes: [
@@ -137,7 +137,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.7.2',
-    date: '2026-07-11',
+    date: '2026-07-05',
     kind: 'fix',
     intro: 'Однострочная починка, зато очень заметная.',
     changes: [
@@ -146,7 +146,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.7.1',
-    date: '2026-07-06',
+    date: '2026-07-03',
     kind: 'fix',
     intro: 'Иногда честнее убрать, чем доводить до ума.',
     changes: [
@@ -155,7 +155,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.7',
-    date: '2026-07-06',
+    date: '2026-07-02',
     kind: 'feature',
     intro: 'Довели картинку-в-картинке до того вида, в котором её и ожидаешь увидеть.',
     changes: [
@@ -164,7 +164,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.6',
-    date: '2026-07-06',
+    date: '2026-07-01',
     kind: 'feature',
     intro:
       'Картинка-в-картинке наконец заработала по-настоящему, а заодно разгрёбся горизонтальный режим — ' +
@@ -176,7 +176,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.5',
-    date: '2026-07-05',
+    date: '2026-06-29',
     kind: 'feature',
     intro: 'Кадров в галерее набралось столько, что искать нужный стало отдельным занятием.',
     changes: [
@@ -185,7 +185,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.4.1',
-    date: '2026-07-05',
+    date: '2026-06-27',
     kind: 'fix',
     intro: 'Подчистил за вчерашним.',
     changes: [
@@ -195,7 +195,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.4',
-    date: '2026-07-05',
+    date: '2026-06-26',
     kind: 'feature',
     intro: 'Скриншотов накопилось столько, что плоский список перестал справляться.',
     changes: [
@@ -205,7 +205,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.3',
-    date: '2026-07-05',
+    date: '2026-06-24',
     kind: 'feature',
     intro:
       'Главная и каталог разъехались по разным страницам. Раньше одна пыталась быть сразу и витриной, ' +
@@ -218,7 +218,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.2',
-    date: '2026-07-05',
+    date: '2026-06-22',
     kind: 'feature',
     intro: 'Виджеты доводились до ума после вчерашнего запуска.',
     changes: [
@@ -228,7 +228,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.1',
-    date: '2026-07-05',
+    date: '2026-06-21',
     kind: 'feature',
     intro: 'Продолжить серию теперь можно, вообще не открывая приложение — прямо с главного экрана.',
     changes: [
@@ -238,7 +238,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '2.0',
-    date: '2026-07-05',
+    date: '2026-06-18',
     kind: 'feature',
     intro:
       'Самое большое обновление за всё время: у приложения появился второй облик. Привычный никуда ' +
@@ -256,7 +256,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.3.1',
-    date: '2026-07-02',
+    date: '2026-06-13',
     kind: 'fix',
     intro: 'Прибрался на главной — она успела зарасти.',
     changes: [
@@ -268,7 +268,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.3',
-    date: '2026-07-02',
+    date: '2026-06-12',
     kind: 'feature',
     intro: 'Рекомендации выбрались за пределы экрана «серия закончилась».',
     changes: [
@@ -278,7 +278,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.2.1',
-    date: '2026-07-02',
+    date: '2026-06-09',
     kind: 'fix',
     intro: 'Однострочная починка.',
     changes: [
@@ -287,7 +287,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.2',
-    date: '2026-06-30',
+    date: '2026-06-08',
     kind: 'feature',
     intro: 'Уведомления стали персональными: каждый привязывает свой Telegram и получает только своё.',
     changes: [
@@ -297,7 +297,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.1',
-    date: '2026-06-30',
+    date: '2026-06-05',
     kind: 'feature',
     intro: 'Пятибалльная шкала оказалась слишком грубой, чтобы отличить «хорошо» от «отлично».',
     changes: [
@@ -307,7 +307,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.0',
-    date: '2026-06-27',
+    date: '2026-06-01',
     kind: 'feature',
     intro: 'Отсюда всё началось.',
     changes: [
