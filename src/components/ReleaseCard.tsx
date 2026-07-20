@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toggleFavorite } from '../api/bookmarks'
 import { getWatchProgress } from '../api/episodes'
 import { hasGrade, type Release } from '../api/releases'
 import { img } from '../lib/img'
 import { useDesign } from '../lib/design'
+import { getMyRating, loadMyRatings, subscribeMyRatings } from '../lib/myRatings'
+import { getShikiScore, requestShikiScore, subscribeShikiScores } from '../lib/shikiScores'
 import Img from './Img'
 
 interface Props {
@@ -12,6 +14,30 @@ interface Props {
 }
 
 export default function ReleaseCard({ release }: Props) {
+  // Личная оценка по десятибалльной шкале. Приходит одним запросом на всю
+  // сессию, поэтому карточка подписывается и перерисовывается, когда данные
+  // доехали, а не дёргает сервер на каждую плитку.
+  const [myRating, setMyRating] = useState(() => getMyRating(release.id))
+  // Общая оценка берётся с Shikimori: она десятибалльная, в отличие от
+  // пятибалльной у Anixart. Запрос идёт пакетом на всю видимую сетку.
+  const orig = release.title_original || ''
+  const [shiki, setShiki] = useState(() => getShikiScore(orig))
+  useEffect(() => {
+    let alive = true
+    const sync = () => { if (alive) setShiki(getShikiScore(orig)) }
+    const off = subscribeShikiScores(sync)
+    requestShikiScore(orig)
+    sync()
+    return () => { alive = false; off() }
+  }, [orig])
+  useEffect(() => {
+    let alive = true
+    const sync = () => { if (alive) setMyRating(getMyRating(release.id)) }
+    const off = subscribeMyRatings(sync)
+    void loadMyRatings().then(sync)
+    return () => { alive = false; off() }
+  }, [release.id])
+
   const design = useDesign()
   const navigate = useNavigate()
   const poster = img(release.image || '')
@@ -41,9 +67,12 @@ export default function ReleaseCard({ release }: Props) {
     return (
       <a className="mdk-card" onClick={openRelease}>
         <div className="mdk-poster" style={release.image ? { backgroundImage: `url(${poster})` } : undefined}>
-          {hasGrade(release) && (
+          {shiki > 0 ? (
+            <span className="mdk-rbadge">★{shiki.toFixed(2)}</span>
+          ) : hasGrade(release) && (
             <span className="mdk-rbadge">★{release.grade!.toFixed(1)}</span>
           )}
+          {myRating > 0 && <span className="mdk-mybadge">{myRating}/10</span>}
           {progress && <span className="mdk-badge">Серия {progress.episodePosition}</span>}
           <div className="mdk-play">
             <span onClick={openWatch}><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>
@@ -97,7 +126,15 @@ export default function ReleaseCard({ release }: Props) {
         {hasGrade(release) && (
           <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md text-[11px] font-semibold
                           bg-black/60 backdrop-blur text-accent-soft">
-            {release.grade!.toFixed(1)}
+            {shiki > 0 ? shiki.toFixed(2) : release.grade!.toFixed(1)}
+          </div>
+        )}
+
+        {/* Своя оценка — под общей, чтобы не спорили за один угол. */}
+        {myRating > 0 && (
+          <div className="absolute right-2 px-1.5 py-0.5 rounded-md text-[11px] font-bold
+                          bg-accent text-black" style={{ top: hasGrade(release) ? 30 : 8 }}>
+            {myRating}/10
           </div>
         )}
 

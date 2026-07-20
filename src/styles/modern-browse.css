@@ -29,6 +29,14 @@
 }
 
 /* Filter bar */
-.mdp-browse-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.mdp-browse-filters {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px;
+  /* Панель обёрнута в .mdk-glass, у которого backdrop-filter, а он создаёт
+     собственный контекст наложения. Из-за этого z-index выпадающих списков
+     внутри неё не спорил с сеткой карточек снаружи — списки уходили под
+     постеры. Поднимаем контекст целиком, тогда всё внутри тоже наверху. */
+  position: relative;
+  z-index: 30;
+}
 .mdp-browse-sep { width: 1px; height: 20px; background: rgba(255, 255, 255, 0.09); margin: 0 4px; }
 .mdp-browse-genrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 26px; }

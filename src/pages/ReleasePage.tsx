@@ -24,6 +24,7 @@ import Spinner from '../components/Spinner'
 import ReleaseCard from '../components/ReleaseCard'
 import { img } from '../lib/img'
 import { accentFromPoster, applyAccent } from '../lib/posterTheme'
+import { setMyRatingLocal } from '../lib/myRatings'
 import { useDesign } from '../lib/design'
 import '../styles/modern-release.css'
 
@@ -344,6 +345,9 @@ export default function ReleasePage() {
     try {
       if (next === 0) await clearMyRating(release.id)
       else await setMyRating(release.id, next)
+      // Плитки в каталоге и на главной читают оценки из общего кеша — обновляем
+      // его сразу, иначе значок появится только после перезагрузки.
+      setMyRatingLocal(release.id, next)
     } catch {
       setMyVote(prev) // revert on failure
     }

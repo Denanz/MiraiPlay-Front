@@ -112,6 +112,13 @@ button.mdk-chip:hover { background: rgba(255, 255, 255, 0.11); }
   color: #ffd479; background: rgba(0, 0, 0, 0.55); padding: 3px 8px; border-radius: 999px;
   backdrop-filter: blur(4px);
 }
+/* Своя оценка на плитке — под общей, чтобы обе не бились за один угол. */
+.mdk-mybadge {
+  position: absolute; top: 36px; right: 8px; z-index: 2;
+  padding: 2px 7px; border-radius: 8px;
+  font-size: 11px; font-weight: 700;
+  background: rgb(var(--accent-rgb)); color: #0b0812;
+}
 .mdk-pbar { width: 100%; padding: 8px; }
 .mdk-pbar i { display: block; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); }
 .mdk-pbar i > b { display: block; height: 100%; border-radius: 2px; background: rgb(var(--accent-rgb)); }
