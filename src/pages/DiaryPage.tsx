@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listDiary, type DiaryListItem } from '../api/diary'
+import { deleteDiary, listDiary, type DiaryListItem } from '../api/diary'
 import { img } from '../lib/img'
 import Spinner from '../components/Spinner'
 import { useDesign } from '../lib/design'
@@ -47,6 +47,22 @@ export default function DiaryPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<RatingFilter>('all')
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [err, setErr] = useState('')
+
+  // Убираем из списка сразу, не дожидаясь сервера; при ошибке возвращаем обратно.
+  const remove = async (releaseId: string) => {
+    const backup = entries
+    setEntries((prev) => prev.filter((e) => e.releaseId !== releaseId))
+    setPendingDelete(null)
+    try {
+      await deleteDiary(releaseId)
+    } catch {
+      setEntries(backup)
+      setErr('Не удалось удалить запись')
+      setTimeout(() => setErr(''), 3000)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -124,6 +140,8 @@ export default function DiaryPage() {
         {chip('high', '8 и выше')}
       </div>
 
+      {err && <p className="text-sm text-red-400 mb-3">{err}</p>}
+
       {visible.length === 0 && (
         <p className="text-sm text-muted">Ничего не нашлось.</p>
       )}
@@ -135,9 +153,26 @@ export default function DiaryPage() {
             {g.items.map((e) => (
               <article
                 key={e.releaseId}
-                onClick={() => navigate(`/release/${e.releaseId}`)}
-                className="flex gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-accent/40 transition-colors cursor-pointer"
+                className="relative flex gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-accent/40 transition-colors"
               >
+                <button
+                  onClick={() => setPendingDelete(e.releaseId)}
+                  title="Удалить запись"
+                  aria-label="Удалить запись"
+                  className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center text-muted/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
+                  </svg>
+                </button>
+                {pendingDelete === e.releaseId && (
+                  <div className="absolute inset-0 z-10 rounded-xl bg-[#0e0b16]/95 flex items-center justify-center gap-2 px-3">
+                    <span className="text-sm text-muted">Удалить запись?</span>
+                    <button onClick={() => remove(e.releaseId)} className="btn-primary !py-1 !px-3 text-sm">Да</button>
+                    <button onClick={() => setPendingDelete(null)} className="btn-ghost !py-1 !px-3 text-sm">Нет</button>
+                  </div>
+                )}
+                <div className="contents cursor-pointer" onClick={() => navigate(`/release/${e.releaseId}`)}>
                 <div className="w-14 shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-white/[0.05]">
                   {e.image && (
                     <img src={img(e.image)} alt="" loading="lazy" className="w-full h-full object-cover" />
@@ -156,6 +191,7 @@ export default function DiaryPage() {
                   {e.text && (
                     <p className="text-sm text-text/80 mt-1 whitespace-pre-line line-clamp-6">{e.text}</p>
                   )}
+                </div>
                 </div>
               </article>
             ))}

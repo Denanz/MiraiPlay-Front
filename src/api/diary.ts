@@ -52,3 +52,9 @@ export async function listDiary(): Promise<DiaryListItem[]> {
     return []
   }
 }
+
+/** Удаление записи. Сервер стирает её, когда текст пуст и оценки нет. */
+export async function deleteDiary(releaseId: string | number): Promise<void> {
+  if (!token()) return
+  await api.post('/api/v1/diary', { releaseId, text: '', rating: 0, token: token() })
+}

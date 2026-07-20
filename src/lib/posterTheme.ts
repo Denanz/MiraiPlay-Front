@@ -8,7 +8,17 @@
 // canvas читается. Но если картинка не загрузилась или холст всё же оказался
 // «испачкан», просто не красим — тема остаётся стандартной.
 
-const VARS = ['--accent-rgb', '--accent-soft-rgb', '--accent-dim-rgb'] as const
+// Помимо акцента подменяем два тона авроры — большой размытой подложки страницы.
+// Раньше она была зашита фиолетовым и не менялась, из-за чего перекрашенные
+// кнопки спорили с фоном: сам постер красный, а вокруг сиреневое свечение.
+const VARS = [
+  '--accent-rgb',
+  '--accent-soft-rgb',
+  '--accent-dim-rgb',
+  '--aurora-a-rgb',
+  '--aurora-b-rgb',
+  '--aurora-c-rgb',
+] as const
 
 type Rgb = [number, number, number]
 
@@ -49,13 +59,13 @@ function fromHsl(h: number, s: number, l: number): Rgb {
  * Доминирующий «живой» цвет постера. Серое, почти чёрное и почти белое
  * отбрасываем: акцент из них получается грязный и нечитаемый на тёмном фоне.
  */
-function pickAccent(data: Uint8ClampedArray): Rgb | null {
+function pickAccent(data: Uint8ClampedArray, minSat = 0.25): Rgb | null {
   const buckets = new Map<string, { count: number; sum: Rgb }>()
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 200) continue // прозрачное
     const rgb: Rgb = [data[i], data[i + 1], data[i + 2]]
     const [, s, l] = toHsl(rgb)
-    if (s < 0.25 || l < 0.15 || l > 0.9) continue
+    if (s < minSat || l < 0.1 || l > 0.93) continue
     // Огрубляем до сетки, иначе каждый пиксель — свой «цвет».
     const key = `${rgb[0] >> 4}:${rgb[1] >> 4}:${rgb[2] >> 4}`
     const b = buckets.get(key)
@@ -95,7 +105,15 @@ export async function accentFromPoster(src: string): Promise<Rgb | null> {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (!ctx) return null
     ctx.drawImage(im, 0, 0, w, h)
-    return pickAccent(ctx.getImageData(0, 0, w, h).data)
+    const data = ctx.getImageData(0, 0, w, h).data
+    // Постепенно ослабляем требования к насыщенности: на приглушённых и
+    // почти монохромных обложках строгий порог не находил ничего, и такие
+    // тайтлы оставались с темой по умолчанию. Цвет должен быть у каждого.
+    for (const minSat of [0.25, 0.15, 0.08, 0]) {
+      const hit = pickAccent(data, minSat)
+      if (hit) return hit
+    }
+    return null
   } catch {
     // Не загрузилось или холст «испачкан» — молча остаёмся на обычной теме.
     return null
@@ -120,6 +138,13 @@ export function applyAccent(rgb: Rgb): () => void {
   root.style.setProperty('--accent-rgb', base.join(' '))
   root.style.setProperty('--accent-soft-rgb', soft.join(' '))
   root.style.setProperty('--accent-dim-rgb', dim.join(' '))
+
+  // Аврора: три пятна вокруг того же тона. Расходятся по кругу, чтобы фон не
+  // выглядел одноцветным, но оставались одного семейства с акцентом.
+  const wrap = (x: number) => (x + 1) % 1
+  root.style.setProperty('--aurora-a-rgb', fromHsl(h, Math.min(0.8, sat), 0.5).join(' '))
+  root.style.setProperty('--aurora-b-rgb', fromHsl(wrap(h + 0.08), Math.min(0.75, sat), 0.45).join(' '))
+  root.style.setProperty('--aurora-c-rgb', fromHsl(wrap(h - 0.1), Math.min(0.6, sat * 0.9), 0.4).join(' '))
   return () => {
     for (const [name, value] of previous) {
       if (value) root.style.setProperty(name, value)

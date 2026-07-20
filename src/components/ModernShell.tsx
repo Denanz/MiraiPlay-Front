@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import '../styles/modern-kit.css'
 
@@ -17,7 +18,13 @@ const NAV: Item[] = [
   { to: '/settings', label: 'Настройки', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 4v2M12 18v2M4 12h2M18 12h2' },
 ]
 
-const BOTTOM = ['/home', '/browse', '/search', '/bookmarks', '/schedule', '/stats']
+// Нижняя панель на телефоне: только то, чем пользуются постоянно. Пять пунктов
+// плюс «Ещё» — шесть слотов, ровно столько же, сколько было, так что панель не
+// уплотняется. Остальное уходит в лист: на узком экране боковой рейл скрыт
+// (@media max-width:860px), и без этого листа Галерея, Ачивки, Дневник,
+// «Выбери за меня» и Настройки были недоступны с телефона вообще.
+const BOTTOM = ['/home', '/browse', '/search', '/bookmarks', '/stats']
+const MORE = ['/schedule', '/gallery', '/achievements', '/diary', '/pick', '/settings']
 
 function Icon({ d }: { d: string }) {
   return <svg viewBox="0 0 24 24"><path d={d} /></svg>
@@ -25,6 +32,10 @@ function Icon({ d }: { d: string }) {
 
 export default function ModernShell() {
   const location = useLocation()
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  // Переход по ссылке из листа должен его закрывать.
+  useEffect(() => { setMoreOpen(false) }, [location.pathname])
   return (
     <div className="min-h-screen bg-bg">
       <div className="md-aurora"><b /><b /><b /></div>
@@ -51,7 +62,28 @@ export default function ModernShell() {
             <Icon d={n.icon} /><span>{n.label}</span>
           </NavLink>
         ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          className={MORE.includes(location.pathname) || moreOpen ? 'on' : ''}
+          aria-label="Ещё"
+        >
+          <Icon d="M5 12h.01M12 12h.01M19 12h.01" /><span>Ещё</span>
+        </button>
       </nav>
+
+      {moreOpen && (
+        <>
+          <div className="md-more-backdrop" onClick={() => setMoreOpen(false)} />
+          <div className="md-more-sheet">
+            {NAV.filter((n) => MORE.includes(n.to)).map((n) => (
+              <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? 'on' : '')}>
+                <Icon d={n.icon} /><span>{n.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
