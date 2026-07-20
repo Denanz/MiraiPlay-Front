@@ -26,8 +26,8 @@ export default function ShikimoriDigest() {
   const maxScore = Math.max(1, ...p.scores.map((s) => s.count))
 
   return (
-    <div className={modern ? 'mdk-glass mdk-pad mb-8' : 'panel p-5 mb-8'}>
-      <div className="flex items-center gap-3 mb-4">
+    <div className={`min-w-0 overflow-hidden ${modern ? 'mdk-glass mdk-pad mb-8' : 'panel p-5 mb-8'}`}>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         {p.avatar && (
           <img src={p.avatar} alt="" className="w-11 h-11 rounded-full shrink-0" loading="lazy" />
         )}
@@ -44,7 +44,7 @@ export default function ShikimoriDigest() {
             href={p.url}
             target="_blank"
             rel="noreferrer"
-            className="btn-ghost ml-auto shrink-0 !py-1.5 text-sm"
+            className="btn-ghost ml-auto shrink-0 !py-1.5 text-sm whitespace-nowrap"
           >
             Профиль ↗
           </a>
@@ -52,11 +52,11 @@ export default function ShikimoriDigest() {
       </div>
 
       {p.statuses.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           {p.statuses.map((s) => (
-            <div key={s.name} className="rounded-lg bg-white/[0.04] px-3 py-2">
-              <div className="text-lg font-bold text-accent-soft">{s.size}</div>
-              <div className="text-xs text-muted">{s.name}</div>
+            <div key={s.name} className="rounded-lg bg-white/[0.04] px-3 py-2 min-w-0">
+              <div className="text-lg font-bold text-accent-soft leading-tight">{s.size}</div>
+              <div className="text-xs text-muted whitespace-nowrap">{s.name}</div>
             </div>
           ))}
         </div>
@@ -64,7 +64,7 @@ export default function ShikimoriDigest() {
 
       {p.scores.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-baseline gap-2 mb-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 mb-2">
             <h3 className="text-xs uppercase tracking-wide text-muted">Оценки</h3>
             {avg && <span className="text-xs text-muted">средняя {avg} · всего {totalScored}</span>}
           </div>

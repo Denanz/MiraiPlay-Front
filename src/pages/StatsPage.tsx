@@ -127,6 +127,8 @@ export default function StatsPage() {
           </div>
         </div>
 
+        <ShikimoriDigest />
+
         <div className="flex flex-wrap gap-2 mb-6">
           <Link to="/achievements" className="mdk-btn mdk-btn-ghost">🏆 Ачивки</Link>
           <Link to="/gallery" className="mdk-btn mdk-btn-ghost">📸 Галерея</Link>
@@ -253,13 +255,15 @@ export default function StatsPage() {
             <div className="text-sm text-muted mt-1">{m.label}</div>
           </div>
         ))}
-        <ShikimoriDigest />
-
         <div className="panel p-5">
           <div className="text-2xl sm:text-3xl font-bold text-accent-soft">{streak} 🔥</div>
           <div className="text-sm text-muted mt-1">Дней подряд</div>
         </div>
       </div>
+
+      {/* Отдельным блоком на всю ширину: внутри сетки метрик он становился её
+          ячейкой и схлопывался в одну узкую колонку. */}
+      <ShikimoriDigest />
 
       {/* Activity heatmap */}
       {dynamics.length > 0 && (
