@@ -5,15 +5,36 @@
   margin: -34px -40px 0;
   overflow: hidden;
   border-radius: 0;
-  /* Plain gradient, no poster art — same reasoning as the Browse hero: posters are
-     portrait (2:3) and crop badly when blurred/stretched behind a wide short banner. */
+  /* Подложка под кадром — она же запасной вариант, когда скриншотов нет.
+     Постер сюда по-прежнему не ставим: он вертикальный (2:3) и в широкой низкой
+     полосе режется. А кадры горизонтальные и ложатся ровно.
+     Базовый цвет берётся из акцента, поэтому шапка следует за обложкой, а не
+     остаётся сиреневой на фоне перекрашенной страницы. */
   background:
     radial-gradient(90% 120% at 70% 0%, rgb(var(--accent-rgb) / 0.4), transparent 60%),
-    linear-gradient(120deg, #2a1650, #130c22);
+    linear-gradient(120deg, rgb(var(--aurora-a-rgb) / 0.5), rgb(var(--accent-dim-rgb) / 0.35));
+}
+.mdp-release-backdrop img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  /* Кадры приходят в 600px по ширине, а полоса бывает и полторы тысячи —
+     резким такой источник показать нельзя, он расползается в мыло. Поэтому
+     не показываем его как картинку вовсе: сильное размытие превращает кадр
+     в атмосферную заливку цветами самой сцены. Увеличение нужно, чтобы
+     размытые края не заходили внутрь полосы. */
+  filter: blur(46px) saturate(1.25);
+  transform: scale(1.25);
+  opacity: .6;
+}
+/* Тонировка кадра под акцент — иначе он спорит с перекрашенной страницей. */
+.mdp-release-backdrop::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(120deg, rgb(var(--accent-dim-rgb) / 0.45), transparent 65%);
 }
 @media (max-width: 640px) { .mdp-release-backdrop { margin: -20px -16px 0; height: 220px; } }
 .mdp-release-backdrop::after {
-  content: ''; position: absolute; inset: 0;
+  content: ''; position: absolute; inset: 0; z-index: 2;
   background: linear-gradient(0deg, #07060b 4%, rgba(7, 6, 11, 0.4) 55%, transparent);
 }
 

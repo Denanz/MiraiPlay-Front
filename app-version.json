@@ -1,7 +1,7 @@
 {
   "url": "https://anime.denanz.fun/mirai.apk",
   "mandatory": false,
-  "versionCode": 41,
-  "versionName": "2.15",
-  "notes": "Появился импорт Shikimori → MiraiHub: направление переноса теперь выбирается, а несопоставленные тайтлы показываются списком, а не угадываются."
+  "versionCode": 43,
+  "versionName": "2.15.2",
+  "notes": "Кнопка удаления в дневнике больше не налезает на дату."
 }

@@ -159,7 +159,7 @@ export default function DiaryPage() {
                   onClick={() => setPendingDelete(e.releaseId)}
                   title="Удалить запись"
                   aria-label="Удалить запись"
-                  className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center text-muted/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="absolute top-2 right-2 z-[1] w-7 h-7 rounded-lg flex items-center justify-center bg-white/[0.06] text-muted hover:text-red-400 hover:bg-red-500/15 transition-colors"
                 >
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
@@ -179,7 +179,9 @@ export default function DiaryPage() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  {/* Отступ справа — под кнопку удаления, которая висит в углу
+                      карточки. Без него дата уезжала прямо под неё. */}
+                  <div className="flex items-center gap-2 pr-9">
                     <h3 className="text-sm font-medium truncate">
                       {e.title || `Тайтл #${e.releaseId}`}
                     </h3>

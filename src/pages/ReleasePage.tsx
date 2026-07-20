@@ -376,6 +376,10 @@ export default function ReleasePage() {
   if (!release) return <div className="text-center text-muted py-20 text-sm">Релиз не найден</div>
 
   const poster = img(release.image || '')
+  // Берём второй кадр, если он есть: первый часто оказывается заставкой или
+  // логотипом, а следующий — уже сценой.
+  const shots = release.screenshot_images ?? []
+  const backdropFrame = shots.length ? img(shots[Math.min(1, shots.length - 1)]) : ''
   const genres = genreList(release.genres)
   const cleanedNote = stripRelatedAnimeFromNote(release.note)
   const safeNoteHtml = sanitizeNoteHtml(cleanedNote)
@@ -460,7 +464,14 @@ export default function ReleasePage() {
   if (design === 'modern') {
     return (
       <div className="max-w-6xl mx-auto">
-        <div className="mdp-release-backdrop" />
+        {/* Кадр из самого аниме вместо пустого градиента. Постер сюда не годится
+            (вертикальный, режется), а скриншоты как раз горизонтальные и ложатся
+            в широкую полосу без обрезки. Если кадров нет — остаётся градиент. */}
+        <div className="mdp-release-backdrop">
+          {backdropFrame && (
+            <img src={backdropFrame} alt="" aria-hidden="true" loading="lazy" />
+          )}
+        </div>
 
         <button
           onClick={() => navigate(-1)}
