@@ -56,13 +56,12 @@ writeFileSync(gradlePath, gradle)
 
 const changelogPath = join(root, 'src/lib/changelog.ts')
 let changelog = readFileSync(changelogPath, 'utf8')
-const today = new Date().toISOString().slice(0, 10)
 // Single-quoted to match the rest of the file's style.
 const quote = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 const entryLines = notes.map((n) => `      ${quote(n)},`).join('\n')
 const introLine = intro ? `    intro: ${quote(intro)},\n` : ''
 const entry =
-  `  {\n    version: '${nextName}',\n    date: '${today}',\n` +
+  `  {\n    version: '${nextName}',\n` +
   `    kind: '${kind === 'minor' ? 'feature' : 'fix'}',\n${introLine}    changes: [\n${entryLines}\n    ],\n  },\n`
 
 const marker = 'export const CHANGELOG: ChangelogEntry[] = [\n'

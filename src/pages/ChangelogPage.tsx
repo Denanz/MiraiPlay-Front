@@ -1,14 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CHANGELOG } from '../lib/changelog'
 
-const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-function fmtDate(iso?: string) {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('-').map(Number)
-  if (!y || !m || !d) return ''
-  return `${d} ${MONTHS[m - 1]} ${y}`
-}
-
 export default function ChangelogPage() {
   return (
     <div className="max-w-3xl mx-auto">
@@ -39,7 +31,6 @@ export default function ChangelogPage() {
               }`}>
                 {entry.kind === 'feature' ? 'новое' : 'исправления'}
               </span>
-              {entry.date && <span className="text-xs text-muted ml-auto">{fmtDate(entry.date)}</span>}
             </div>
 
             {entry.intro && (
