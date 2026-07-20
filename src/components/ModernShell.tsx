@@ -11,6 +11,8 @@ const NAV: Item[] = [
   { to: '/schedule', label: 'Расписание', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
   { to: '/gallery', label: 'Галерея', icon: 'M4 5h16v14H4zM4 15l4-4 4 4 4-5 4 4' },
   { to: '/achievements', label: 'Ачивки', icon: 'M8 4h8v4a4 4 0 0 1-8 0zM10 15h4v4h-4z' },
+  { to: '/diary', label: 'Дневник', icon: 'M6 4h11a1 1 0 0 1 1 1v15H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM9 8h6M9 12h6' },
+  { to: '/pick', label: 'Выбери за меня', icon: 'M5 5h5v5H5zM14 14h5v5h-5zM7.5 14v5M16.5 5v5' },
   { to: '/stats', label: 'Профиль', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20c0-3.5 3-6 7-6s7 2.5 7 6' },
   { to: '/settings', label: 'Настройки', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 4v2M12 18v2M4 12h2M18 12h2' },
 ]

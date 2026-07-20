@@ -1,7 +1,7 @@
 {
   "url": "https://anime.denanz.fun/mirai.apk",
   "mandatory": false,
-  "versionCode": 37,
-  "versionName": "2.13",
-  "notes": "Перенос списков в Shikimori: бэкап, проверка без записи и сам перенос — с прогрессом и подтверждением."
+  "versionCode": 38,
+  "versionName": "2.13.1",
+  "notes": "Дневник и «Выбери за меня» появились в боковом меню Modern — раньше туда можно было попасть только по прямой ссылке."
 }
