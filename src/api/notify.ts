@@ -73,13 +73,14 @@ export async function getShikiStatus(): Promise<ShikiStatus> {
   }
 }
 
-/** Возвращает ник на Shikimori или null, если код не подошёл. */
-export async function connectShikimori(code: string): Promise<string | null> {
+/** Ник на Shikimori либо причина отказа — её нужно показать пользователю. */
+export async function connectShikimori(code: string): Promise<{ nickname?: string; error?: string }> {
   try {
     const { data } = await api.post<{ nickname: string }>('/api/v1/shikimori/connect', { code, token: token() })
-    return data?.nickname ?? null
-  } catch {
-    return null
+    return { nickname: data?.nickname }
+  } catch (e) {
+    const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    return { error: detail || 'сервер не принял код' }
   }
 }
 

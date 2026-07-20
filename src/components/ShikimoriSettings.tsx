@@ -27,14 +27,17 @@ export default function ShikimoriSettings() {
   const connect = async () => {
     if (!code.trim()) return
     setBusy(true); setMsg('')
-    const nickname = await connectShikimori(code.trim())
+    const res = await connectShikimori(code.trim())
     setBusy(false)
-    if (!nickname) {
-      setMsg('Код не подошёл. Он одноразовый и быстро истекает — получите новый.')
+    if (!res.nickname) {
+      setMsg(
+        `Код не подошёл: ${res.error}. Он одноразовый и живёт несколько минут — ` +
+        'откройте страницу разрешения заново и вставьте свежий.',
+      )
       return
     }
     setCode('')
-    setMsg(`Подключено: ${nickname}`)
+    setMsg(`Подключено: ${res.nickname}`)
     refresh()
   }
 

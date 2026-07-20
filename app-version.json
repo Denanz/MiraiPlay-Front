@@ -1,7 +1,7 @@
 {
   "url": "https://anime.denanz.fun/mirai.apk",
   "mandatory": false,
-  "versionCode": 43,
-  "versionName": "2.15.2",
-  "notes": "Кнопка удаления в дневнике больше не налезает на дату."
+  "versionCode": 45,
+  "versionName": "2.15.4",
+  "notes": "Убрана декоративная полоса вверху страницы тайтла. При неудачном подключении Shikimori теперь видно настоящую причину, а не общее «код не подошёл»."
 }
