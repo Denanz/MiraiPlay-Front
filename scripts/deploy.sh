@@ -41,7 +41,24 @@ echo "== build web =="
 npm run build
 
 echo "== deploy web =="
-rsync -a --delete --exclude=prototype --exclude=mirai.apk dist/ "$DEPLOY_TARGET/"
+# Всё, кроме assets, синхронизируем с удалением лишнего.
+rsync -a --delete --exclude=prototype --exclude=mirai.apk --exclude=assets/ dist/ "$DEPLOY_TARGET/"
+
+# Assets — БЕЗ удаления. Имена чанков содержат хеш содержимого, и вкладка,
+# открытая до выката, продолжает просить файлы со старыми именами. Если снести
+# их сразу, у такого пользователя ломается переход на любую страницу
+# («Failed to fetch dynamically imported module»). Оставляем прежние файлы
+# лежать, пока он не перезагрузит страницу.
+rsync -a dist/assets/ "$DEPLOY_TARGET/assets/"
+
+# Освежаем время у всех актуальных файлов, чтобы отличать их от осиротевших,
+# и выметаем то, что не обновлялось две недели. Без touch чанк, не изменившийся
+# между сборками, сохранил бы старую дату и был бы удалён как «старый», хотя
+# на него всё ещё ссылается свежий index.html.
+find dist/assets -type f -printf '%P\n' | while IFS= read -r f; do
+  touch "$DEPLOY_TARGET/assets/$f" 2>/dev/null || true
+done
+find "$DEPLOY_TARGET/assets" -type f -mtime +14 -delete 2>/dev/null || true
 
 echo "== sync android =="
 npx cap sync android
