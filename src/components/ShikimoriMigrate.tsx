@@ -4,7 +4,10 @@ import {
   getMigrateStatus,
   startMigrate,
   shikiBackupUrl,
+  getImportStatus,
+  startImport,
   type MigrateJob,
+  type ImportJob,
 } from '../api/notify'
 import { useDesign } from '../lib/design'
 
@@ -19,6 +22,10 @@ export default function ShikimoriMigrate() {
   const modern = useDesign() === 'modern'
   const [connected, setConnected] = useState(false)
   const [job, setJob] = useState<MigrateJob | null>(null)
+  const [imp, setImp] = useState<ImportJob | null>(null)
+  // Направление выбирается осознанно: у кого-то полнее списки здесь, у кого-то
+  // на Shikimori, и «правильного» ответа по умолчанию нет.
+  const [dir, setDir] = useState<'out' | 'in'>('out')
   const [confirming, setConfirming] = useState(false)
   const [msg, setMsg] = useState('')
   const timer = useRef<number | null>(null)
@@ -26,6 +33,7 @@ export default function ShikimoriMigrate() {
   useEffect(() => {
     getShikiStatus().then((s) => setConnected(s.connected))
     getMigrateStatus().then(setJob)
+    getImportStatus().then(setImp)
     return () => { if (timer.current) window.clearInterval(timer.current) }
   }, [])
 
@@ -40,14 +48,25 @@ export default function ShikimoriMigrate() {
     return () => { if (timer.current) window.clearInterval(timer.current) }
   }, [job?.running])
 
+  useEffect(() => {
+    if (!imp?.running) return
+    const t = window.setInterval(() => { getImportStatus().then(setImp) }, 3000)
+    return () => window.clearInterval(t)
+  }, [imp?.running])
+
   if (!connected) return null
 
   const run = async (dryRun: boolean) => {
     setMsg(''); setConfirming(false)
+    if (dir === 'in') {
+      const ok = await startImport(dryRun)
+      if (!ok) { setMsg('Прогон уже идёт — дождитесь окончания.'); return }
+      setImp(await getImportStatus())
+      return
+    }
     const ok = await startMigrate(dryRun)
     if (!ok) { setMsg('Прогон уже идёт — дождитесь окончания.'); return }
-    const s = await getMigrateStatus()
-    setJob(s)
+    setJob(await getMigrateStatus())
   }
 
   const rep = job?.report
@@ -55,22 +74,46 @@ export default function ShikimoriMigrate() {
 
   return (
     <div className={modern ? 'mdk-glass mdk-pad' : 'panel p-5'}>
-      <h2 className="text-base font-semibold">Перенос списков в Shikimori</h2>
-      <p className="text-xs text-muted mt-0.5 mb-4">
-        Статусы, число просмотренных серий и оценки уедут в список на Shikimori.
-        Существующие записи там будут перезаписаны данными отсюда.
+      <h2 className="text-base font-semibold">Перенос списков</h2>
+      <p className="text-xs text-muted mt-0.5 mb-3">
+        Выберите, какая сторона главнее. Данные с неё перезапишут другую.
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          onClick={() => setDir('out')}
+          className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+            dir === 'out' ? 'bg-accent text-black' : 'bg-white/[0.06] text-muted hover:text-text'
+          }`}
+        >
+          MiraiHub → Shikimori
+        </button>
+        <button
+          onClick={() => setDir('in')}
+          className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+            dir === 'in' ? 'bg-accent text-black' : 'bg-white/[0.06] text-muted hover:text-text'
+          }`}
+        >
+          Shikimori → MiraiHub
+        </button>
+      </div>
+
+      <p className="text-xs text-muted mb-4">
+        {dir === 'out'
+          ? 'Статусы, число просмотренных серий и оценки уедут в список на Shikimori.'
+          : 'Статусы списков и оценки перенесутся сюда. Тайтлы сопоставляются по оригинальному названию; что не сошлось однозначно — попадёт в список для ручного разбора, а не будет угадано.'}
       </p>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <a href={shikiBackupUrl()} className="btn-ghost !py-2 text-sm" download>
           1. Скачать бэкап Shikimori
         </a>
-        <button onClick={() => run(true)} disabled={job?.running} className="btn-ghost !py-2 text-sm">
+        <button onClick={() => run(true)} disabled={job?.running || imp?.running} className="btn-ghost !py-2 text-sm">
           2. Проверить без записи
         </button>
         <button
           onClick={() => setConfirming(true)}
-          disabled={job?.running}
+          disabled={job?.running || imp?.running}
           className="btn-primary !py-2 text-sm"
         >
           3. Перенести
@@ -80,8 +123,10 @@ export default function ShikimoriMigrate() {
       {confirming && (
         <div className="rounded-lg border border-amber-400/40 bg-amber-400/[0.06] p-3 mb-4">
           <p className="text-sm text-amber-200">
-            Записи на Shikimori будут перезаписаны данными из MiraiHub. Отменить это одной
-            кнопкой нельзя — восстановить можно только из скачанного бэкапа.
+            {dir === 'out'
+              ? 'Записи на Shikimori будут перезаписаны данными из MiraiHub.'
+              : 'Списки и оценки здесь будут перезаписаны данными с Shikimori.'}
+            {' '}Отменить одной кнопкой нельзя — восстановить можно только из скачанного бэкапа.
           </p>
           <div className="flex gap-2 mt-3">
             <button onClick={() => run(false)} className="btn-primary !py-1.5 text-sm">
@@ -110,7 +155,41 @@ export default function ShikimoriMigrate() {
         </div>
       )}
 
-      {!job?.running && rep && (
+      {imp?.running && (
+        <div>
+          <div className="flex justify-between text-xs text-muted mb-1">
+            <span>{imp.dryRun ? 'Проверка без записи' : 'Импортирую'}…</span>
+            <span>{imp.done} из {imp.total}</span>
+          </div>
+          <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-full bg-accent transition-all"
+              style={{ width: `${imp.total ? Math.round((imp.done / imp.total) * 100) : 0}%` }} />
+          </div>
+        </div>
+      )}
+
+      {!imp?.running && imp?.report && dir === 'in' && (
+        <div className="text-sm space-y-1 mb-3">
+          <div className="text-muted text-xs mb-1">
+            {imp.dryRun ? 'Результат проверки' : 'Импорт завершён'}
+          </div>
+          <div>Записей на Shikimori: <b>{imp.report.total}</b></div>
+          <div>Сопоставлено: <b className="text-accent">{imp.report.matched}</b></div>
+          {!imp.dryRun && <div>Применено: <b>{imp.report.applied}</b></div>}
+          {imp.report.skipped.length > 0 && (
+            <details className="text-xs text-muted">
+              <summary className="cursor-pointer">В ручной разбор: {imp.report.skipped.length}</summary>
+              <ul className="mt-1 space-y-0.5 max-h-48 overflow-y-auto">
+                {imp.report.skipped.map((s, i) => (
+                  <li key={i}>{s.shikiName} — {s.reason}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+
+      {!job?.running && rep && dir === 'out' && (
         <div className="text-sm space-y-1">
           <div className="text-muted text-xs mb-1">
             {job?.dryRun ? 'Результат проверки' : 'Перенос завершён'}

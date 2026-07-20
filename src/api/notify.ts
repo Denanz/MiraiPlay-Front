@@ -156,3 +156,48 @@ export async function startMigrate(dryRun: boolean): Promise<boolean> {
     return false
   }
 }
+
+export interface ImportCandidate {
+  shikiName: string
+  status: string
+  score: number
+  releaseTitle?: string
+  reason?: string
+}
+
+export interface ImportReport {
+  total: number
+  matched: number
+  applied: number
+  skipped: ImportCandidate[]
+  failed: string[]
+}
+
+export interface ImportJob {
+  running: boolean
+  dryRun: boolean
+  done: number
+  total: number
+  report?: ImportReport
+}
+
+export async function getImportStatus(): Promise<ImportJob | null> {
+  if (!token()) return null
+  try {
+    const { data } = await api.get<{ job: ImportJob | null }>('/api/v1/shikimori/import/status', {
+      params: { token: token() },
+    })
+    return data?.job ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function startImport(dryRun: boolean): Promise<boolean> {
+  try {
+    await api.post('/api/v1/shikimori/import', { dryRun, token: token() })
+    return true
+  } catch {
+    return false
+  }
+}
