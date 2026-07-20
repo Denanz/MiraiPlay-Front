@@ -5,6 +5,7 @@ import DesignPicker from '../components/DesignPicker'
 import ListBackup from '../components/ListBackup'
 import NotifySettings from '../components/NotifySettings'
 import ShikimoriSettings from '../components/ShikimoriSettings'
+import ShikimoriMigrate from '../components/ShikimoriMigrate'
 import { APP_VERSION } from '../lib/changelog'
 import { useDesign } from '../lib/design'
 
@@ -19,6 +20,7 @@ export default function SettingsPage() {
       <ThemePicker />
       {session && <NotifySettings />}
       {session && <ShikimoriSettings />}
+      {session && <ShikimoriMigrate />}
       <ListBackup />
 
       <Link

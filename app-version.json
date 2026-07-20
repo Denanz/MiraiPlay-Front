@@ -1,7 +1,7 @@
 {
   "url": "https://anime.denanz.fun/mirai.apk",
   "mandatory": false,
-  "versionCode": 36,
-  "versionName": "2.12.1",
-  "notes": "История изменений теперь с человеческими вступлениями, а не голым списком пунктов."
+  "versionCode": 37,
+  "versionName": "2.13",
+  "notes": "Перенос списков в Shikimori: бэкап, проверка без записи и сам перенос — с прогрессом и подтверждением."
 }

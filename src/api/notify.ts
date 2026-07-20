@@ -112,3 +112,47 @@ export async function getShikiProfile(): Promise<ShikiProfileDigest | null> {
     return null
   }
 }
+
+export interface MigrateReport {
+  total: number
+  matched: number
+  written: number
+  unmatched: string[]
+  failed: string[]
+}
+
+export interface MigrateJob {
+  running: boolean
+  dryRun: boolean
+  done: number
+  total: number
+  report?: MigrateReport
+  error?: string
+}
+
+/** Ссылка на выгрузку — открывается как обычное скачивание. */
+export function shikiBackupUrl(): string {
+  return `${api.defaults.baseURL ?? ''}/api/v1/shikimori/backup?token=${encodeURIComponent(token())}`
+}
+
+export async function getMigrateStatus(): Promise<MigrateJob | null> {
+  if (!token()) return null
+  try {
+    const { data } = await api.get<{ job: MigrateJob | null }>('/api/v1/shikimori/migrate/status', {
+      params: { token: token() },
+    })
+    return data?.job ?? null
+  } catch {
+    return null
+  }
+}
+
+/** false — прогон уже идёт. */
+export async function startMigrate(dryRun: boolean): Promise<boolean> {
+  try {
+    await api.post('/api/v1/shikimori/migrate', { dryRun, token: token() })
+    return true
+  } catch {
+    return false
+  }
+}
