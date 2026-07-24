@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   getDubbers,
@@ -14,6 +14,7 @@ import {
 import type { WatchProgressEntry } from '../api/episodes'
 import { getRelease } from '../api/releases'
 import { isPlayableUrl } from '../lib/playableHost'
+import { getAnimelibTeams, setAnimelibOverride } from '../api/animelib'
 import { getContinueWatching, watchedPct, fmtTime } from '../api/progress'
 import { getEpisodeRatings } from '../api/ratings'
 import type { EpisodeType, EpisodeSource, Episode } from '../api/episodes'
@@ -25,6 +26,18 @@ import '../styles/modern-watch.css'
 interface WatchLocationState {
   preferredTypeId?: number
   preferredSourceId?: number
+}
+
+// A second, synthetic "Источник" entry alongside whatever Anixart's own
+// dubber list returns (in practice always just "Kodik"). id:-1 is a sentinel
+// that never collides with a real Anixart source id (always positive).
+const ANIMELIB_SOURCE: EpisodeSource = { id: -1, name: 'AnimeLib' }
+
+const ANIMELIB_REASONS: Record<string, string> = {
+  no_token: 'AnimeLib не подключён — зайди в Настройки',
+  title_not_found: 'Тайтл не найден на AnimeLib',
+  episode_not_found: 'Серия не найдена на AnimeLib',
+  no_native_source: 'У этого тайтла нет своего плеера AnimeLib',
 }
 
 // "12 серия" / "Серия 12" / "12" carry no extra info beyond the number.
@@ -53,6 +66,24 @@ export default function WatchPage() {
 
   const [selectedType, setSelectedType] = useState<EpisodeType | null>(null)
   const [selectedSource, setSelectedSource] = useState<EpisodeSource | null>(null)
+
+  // AnimeLib as a source: its own dub-team list (озвучка), fetched lazily —
+  // wholly separate from Anixart's `types`, which stays untouched for Kodik.
+  const [animelibTeams, setAnimelibTeams] = useState<EpisodeType[]>([])
+  const [selectedAnimelibTeam, setSelectedAnimelibTeam] = useState<EpisodeType | null>(null)
+  const [animelibEpisodeNumbers, setAnimelibEpisodeNumbers] = useState<string[]>([])
+  const [animelibLoading, setAnimelibLoading] = useState(false)
+  const [animelibMsg, setAnimelibMsg] = useState('')
+  const [animelibReason, setAnimelibReason] = useState('')
+  const [animelibOverrideInput, setAnimelibOverrideInput] = useState('')
+  const [animelibOverrideBusy, setAnimelibOverrideBusy] = useState(false)
+  // Bumped after a manual override is saved, to force the lookup below to
+  // retry — none of its other dependencies change just from saving one.
+  const [animelibRetry, setAnimelibRetry] = useState(0)
+  const isAnimelibSource = selectedSource?.id === ANIMELIB_SOURCE.id
+  // Pasting a link only helps when the problem is "wrong/no title match" —
+  // not when the account isn't connected or the title has no native player.
+  const canOverrideAnimelib = animelibReason === 'title_not_found' || animelibReason === 'episode_not_found'
 
   const [loading, setLoading] = useState(true)
   const [loadingEpisodes, setLoadingEpisodes] = useState(false)
@@ -124,7 +155,9 @@ export default function WatchPage() {
   }, [id, selectedType, routeState?.preferredSourceId, savedProgress?.sourceId, savedSelection?.sourceId])
 
   useEffect(() => {
-    if (!id || !selectedType || !selectedSource) return
+    // AnimeLib isn't a real Anixart source — asking Anixart for episodes under
+    // sentinel id -1 would just be a wasted/garbage request.
+    if (!id || !selectedType || !selectedSource || isAnimelibSource) return
     setLoadingEpisodes(true)
     setEpisodes([])
     getEpisodes(id, selectedType.id, selectedSource.id)
@@ -140,7 +173,71 @@ export default function WatchPage() {
       })
       .catch(() => setEpisodes([]))
       .finally(() => setLoadingEpisodes(false))
-  }, [id, selectedType, selectedSource])
+  }, [id, selectedType, selectedSource, isAnimelibSource])
+
+  // AnimeLib's own dub-team list + real episode roster, fetched lazily the
+  // first time that source is picked (needs `release` for title matching).
+  // Guarded by a ref key (not `animelibLoading`/`animelibTeams.length` state)
+  // — using the async call's own state as a dependency caused it to retrigger
+  // itself the instant a "not found" result flipped loading back to false,
+  // looping forever and never letting the message/override input render.
+  const animelibFetchKey = `${id || ''}:${animelibRetry}`
+  const animelibFetchedKeyRef = useRef('')
+  useEffect(() => {
+    if (!id || !isAnimelibSource || !release) return
+    if (animelibFetchedKeyRef.current === animelibFetchKey) return
+    animelibFetchedKeyRef.current = animelibFetchKey
+    setAnimelibLoading(true)
+    setAnimelibMsg('')
+    setAnimelibReason('')
+    setAnimelibTeams([])
+    setAnimelibEpisodeNumbers([])
+    getAnimelibTeams(id, { orig: release.title_original, ru: release.title_ru, en: release.title_en })
+      .then((res) => {
+        if (res.found && res.teams?.length) {
+          const list: EpisodeType[] = res.teams.map((name, i) => ({ id: i, name }))
+          setAnimelibTeams(list)
+          setSelectedAnimelibTeam(list[0])
+          setAnimelibEpisodeNumbers(res.episodeNumbers || [])
+        } else {
+          setAnimelibMsg(ANIMELIB_REASONS[res.reason || ''] || 'Не найдено на AnimeLib')
+          setAnimelibReason(res.reason || '')
+        }
+      })
+      .finally(() => setAnimelibLoading(false))
+  }, [id, isAnimelibSource, release, animelibFetchKey])
+
+  // AnimeLib's own API occasionally blips (backend retries a few times on its
+  // own, but a longer outage can still outlast that) — a one-tap retry beats
+  // sending the user off to reselect the source or reload the page.
+  const retryAnimelib = () => setAnimelibRetry((v) => v + 1)
+
+  const submitAnimelibOverride = async () => {
+    if (!id || !animelibOverrideInput.trim()) return
+    setAnimelibOverrideBusy(true)
+    try {
+      const ok = await setAnimelibOverride(id, animelibOverrideInput.trim())
+      if (!ok) { setAnimelibMsg('Не удалось сохранить — проверь ссылку/id'); return }
+      setAnimelibOverrideInput('')
+      setAnimelibMsg('')
+      setAnimelibRetry((v) => v + 1)
+    } finally {
+      setAnimelibOverrideBusy(false)
+    }
+  }
+
+  // AnimeLib's own real episode numbers (see AnimelibTeamsResult for why this
+  // matters — Anixart's episode count doesn't reliably match for split-cour
+  // titles). Falls back to Anixart's count only while the real roster hasn't
+  // loaded yet, so the grid isn't empty during the brief wait.
+  const animelibEpisodeCount = release?.episodes_released || release?.episodes_total || 0
+  const animelibEpisodes = useMemo<Episode[]>(() => {
+    if (animelibEpisodeNumbers.length > 0) {
+      return animelibEpisodeNumbers.map((n) => ({ position: Number(n) || 0 })).filter((e) => e.position > 0)
+    }
+    return Array.from({ length: animelibEpisodeCount }, (_, i) => ({ position: i + 1 }))
+  }, [animelibEpisodeNumbers, animelibEpisodeCount])
+  const activeEpisodes = isAnimelibSource ? animelibEpisodes : episodes
 
   useEffect(() => {
     if (!id || !selectedSource) { setEpProgress(new Map()); return }
@@ -166,6 +263,37 @@ export default function WatchPage() {
 
   const handleEpisodeClick = async (episode: Episode) => {
     if (!id || !selectedSource) return
+
+    if (isAnimelibSource) {
+      if (!selectedAnimelibTeam) { alert('Выбери озвучку AnimeLib'); return }
+      saveWatchProgress({
+        releaseId: id,
+        releaseTitle: release?.title_ru,
+        releaseImage: release?.image,
+        typeName: selectedAnimelibTeam.name,
+        sourceId: ANIMELIB_SOURCE.id,
+        sourceName: ANIMELIB_SOURCE.name,
+        episodePosition: episode.position,
+        episodeName: episode.name || `Эпизод ${episode.position}`,
+        updatedAt: Date.now(),
+      })
+      navigate('/player', {
+        state: {
+          animelibTeam: selectedAnimelibTeam.name,
+          releaseId: id,
+          sourceId: ANIMELIB_SOURCE.id,
+          position: episode.position,
+          episodeName: episode.name || `Эпизод ${episode.position}`,
+          releaseName: release?.title_ru,
+          dubberName: selectedAnimelibTeam.name,
+          sourceName: ANIMELIB_SOURCE.name,
+          totalEpisodes: animelibEpisodeCount,
+          titleOriginal: release?.title_original,
+        },
+      })
+      return
+    }
+
     try {
       const data = await getEpisodeTarget(id, selectedSource.id, episode.position)
       const ep = data.episode
@@ -210,6 +338,7 @@ export default function WatchPage() {
           sourceName: selectedSource.name,
           totalEpisodes,
           typeId: selectedType?.id, // панель серий берёт отсюда настоящие названия
+          titleOriginal: release?.title_original,
         },
       })
     } catch (e) {
@@ -229,10 +358,10 @@ export default function WatchPage() {
     return episodes.find((episode) => episode.position === savedProgress.episodePosition + 1) || null
   }, [episodes, savedProgress])
 
-  const fillerCount = useMemo(() => episodes.filter((e) => e.is_filler).length, [episodes])
+  const fillerCount = useMemo(() => activeEpisodes.filter((e) => e.is_filler).length, [activeEpisodes])
   const visibleEpisodes = useMemo(
-    () => (hideFillers ? episodes.filter((e) => !e.is_filler) : episodes),
-    [episodes, hideFillers],
+    () => (hideFillers ? activeEpisodes.filter((e) => !e.is_filler) : activeEpisodes),
+    [activeEpisodes, hideFillers],
   )
 
   if (loading) return <Spinner variant="watch" />
@@ -269,7 +398,66 @@ export default function WatchPage() {
           </div>
         )}
 
-        {types.length > 0 && (
+        <div className="mdk-rowhead"><h2>Источник</h2></div>
+        <div className="flex flex-wrap gap-2">
+          {[...sources, ANIMELIB_SOURCE].map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedSource(s)}
+              className={`mdk-chip ${selectedSource?.id === s.id ? 'mdk-chip-acc' : ''}`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+
+        {isAnimelibSource ? (
+          <>
+            <div className="mdk-rowhead"><h2>Озвучка</h2></div>
+            {animelibLoading ? (
+              <p className="text-sm text-muted">Ищу на AnimeLib…</p>
+            ) : animelibTeams.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {animelibTeams.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedAnimelibTeam(t)}
+                    className={`mdk-chip ${selectedAnimelibTeam?.id === t.id ? 'mdk-chip-acc' : ''}`}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            ) : animelibMsg ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted">{animelibMsg}</p>
+                  <button onClick={retryAnimelib} className="mdk-chip shrink-0">Повторить</button>
+                </div>
+                {canOverrideAnimelib && (
+                  <>
+                    <p className="text-xs text-muted">Не нашли автоматически — открой тайтл на animelib.org и вставь ссылку сюда, дальше сработает для всех:</p>
+                    <div className="flex gap-2">
+                      <input
+                        value={animelibOverrideInput}
+                        onChange={(e) => setAnimelibOverrideInput(e.target.value)}
+                        placeholder="Ссылка или id тайтла на animelib.org"
+                        className="input flex-1"
+                      />
+                      <button
+                        onClick={submitAnimelibOverride}
+                        disabled={animelibOverrideBusy || !animelibOverrideInput.trim()}
+                        className="btn-primary !py-2 text-sm shrink-0"
+                      >
+                        {animelibOverrideBusy ? '…' : 'Указать'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </>
+        ) : types.length > 0 && (
           <>
             <div className="mdk-rowhead"><h2>Озвучка</h2></div>
             <div className="flex flex-wrap gap-2">
@@ -286,29 +474,12 @@ export default function WatchPage() {
           </>
         )}
 
-        {sources.length > 0 && (
-          <>
-            <div className="mdk-rowhead"><h2>Источник</h2></div>
-            <div className="flex flex-wrap gap-2">
-              {sources.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedSource(s)}
-                  className={`mdk-chip ${selectedSource?.id === s.id ? 'mdk-chip-acc' : ''}`}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
         {loadingEpisodes ? (
           <Spinner variant="watch" />
-        ) : episodes.length > 0 ? (
+        ) : activeEpisodes.length > 0 ? (
           <>
             <div className="mdk-rowhead">
-              <h2>Эпизоды · <b>{hideFillers ? visibleEpisodes.length : episodes.length}</b></h2>
+              <h2>Эпизоды · <b>{hideFillers ? visibleEpisodes.length : activeEpisodes.length}</b></h2>
               {fillerCount > 0 && (
                 <button onClick={() => setHideFillers(v => !v)} className={`mdk-chip ${hideFillers ? 'mdk-chip-acc' : ''}`}>
                   {hideFillers ? 'Филлеры скрыты' : 'Скрыть филлеры'}
@@ -347,9 +518,9 @@ export default function WatchPage() {
               })}
             </div>
           </>
-        ) : types.length === 0 ? (
+        ) : (
           <div className="text-center text-muted py-20 text-sm">Эпизоды не найдены</div>
-        ) : null}
+        )}
       </div>
     )
   }
@@ -402,8 +573,69 @@ export default function WatchPage() {
         )}
       </div>
 
-      {types.length > 0 && (
-        <section className="mb-5">
+      <section className="mb-5">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-muted mb-2.5">Источник</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {[...sources, ANIMELIB_SOURCE].map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedSource(s)}
+              className={`chip ${selectedSource?.id === s.id ? 'chip-active' : ''}`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {isAnimelibSource ? (
+        <section className="mb-7">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-muted mb-2.5">Озвучка</h3>
+          {animelibLoading ? (
+            <p className="text-sm text-muted">Ищу на AnimeLib…</p>
+          ) : animelibTeams.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {animelibTeams.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedAnimelibTeam(t)}
+                  className={`chip ${selectedAnimelibTeam?.id === t.id ? 'chip-active' : ''}`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          ) : animelibMsg ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted">{animelibMsg}</p>
+                <button onClick={retryAnimelib} className="chip shrink-0">Повторить</button>
+              </div>
+              {canOverrideAnimelib && (
+                <>
+                  <p className="text-xs text-muted">Не нашли автоматически — открой тайтл на animelib.org и вставь ссылку сюда, дальше сработает для всех:</p>
+                  <div className="flex gap-2">
+                    <input
+                      value={animelibOverrideInput}
+                      onChange={(e) => setAnimelibOverrideInput(e.target.value)}
+                      placeholder="Ссылка или id тайтла на animelib.org"
+                      className="input flex-1"
+                    />
+                    <button
+                      onClick={submitAnimelibOverride}
+                      disabled={animelibOverrideBusy || !animelibOverrideInput.trim()}
+                      className="btn-primary !py-2 text-sm shrink-0"
+                    >
+                      {animelibOverrideBusy ? '…' : 'Указать'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
+        </section>
+      ) : types.length > 0 && (
+        <section className="mb-7">
           <h3 className="text-xs font-medium uppercase tracking-wide text-muted mb-2.5">Озвучка</h3>
           <div className="flex flex-wrap gap-1.5">
             {types.map(t => (
@@ -420,30 +652,13 @@ export default function WatchPage() {
         </section>
       )}
 
-      {sources.length > 0 && (
-        <section className="mb-7">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted mb-2.5">Источник</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {sources.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedSource(s)}
-                className={`chip ${selectedSource?.id === s.id ? 'chip-active' : ''}`}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
       {loadingEpisodes ? (
         <Spinner variant="watch" />
-      ) : episodes.length > 0 ? (
+      ) : activeEpisodes.length > 0 ? (
         <section>
           <div className="flex items-center justify-between gap-3 mb-3">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted">
-              Эпизоды · {hideFillers ? visibleEpisodes.length : episodes.length}
+              Эпизоды · {hideFillers ? visibleEpisodes.length : activeEpisodes.length}
               {fillerCount > 0 && <span className="ml-1 text-amber-400/70">· филлеров {fillerCount}</span>}
             </h3>
             {fillerCount > 0 && (
@@ -508,9 +723,9 @@ export default function WatchPage() {
             })}
           </div>
         </section>
-      ) : types.length === 0 ? (
+      ) : (
         <div className="text-center text-muted py-20 text-sm">Эпизоды не найдены</div>
-      ) : null}
+      )}
     </div>
   )
 }

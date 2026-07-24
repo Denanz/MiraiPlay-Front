@@ -15,7 +15,9 @@ import { useDesign } from '../lib/design'
 const Immersive = registerPlugin<{ enable: () => Promise<void>; disable: () => Promise<void> }>('Immersive')
 
 interface PlayerState {
-  kodikUrl: string
+  /** Отсутствует, когда источник — AnimeLib (см. animelibTeam): резолв ссылки
+   *  тогда происходит на сервере при открытии /player, а не заранее здесь. */
+  kodikUrl?: string
   releaseId: string
   sourceId: number
   position: number
@@ -26,6 +28,10 @@ interface PlayerState {
   totalEpisodes?: number
   /** Нужен панели серий для настоящих названий; у гостя комнаты может отсутствовать. */
   typeId?: number
+  /** Оригинальное (ромадзи) название — для матчинга тайтла на AnimeLib. */
+  titleOriginal?: string
+  /** Выбранная команда AnimeLib — источник вместо kodikUrl. */
+  animelibTeam?: string
 }
 
 const API_BASE = 'https://aniapi.denanz.fun'
@@ -36,10 +42,24 @@ function contentOf(s: PlayerState): WtContent {
     episodeName: s.episodeName, releaseName: s.releaseName,
     dubberName: s.dubberName, sourceName: s.sourceName, totalEpisodes: s.totalEpisodes,
     kodikUrl: s.kodikUrl, // so guests can play without a token
+    titleOriginal: s.titleOriginal,
+    animelibTeam: s.animelibTeam,
   }
 }
 
 async function resolveContent(c: WtContent): Promise<PlayerState> {
+  // AnimeLib source: no url to resolve up front — the /player route resolves
+  // it server-side (needs the viewer's own AnimeLib token, which a Watch
+  // Together guest may not share with the host, so this can't be pre-resolved
+  // and handed over like the Kodik path below does).
+  if (c.animelibTeam) {
+    return {
+      releaseId: c.releaseId, sourceId: c.sourceId, position: c.position,
+      episodeName: c.episodeName || `Эпизод ${c.position}`, releaseName: c.releaseName,
+      dubberName: c.dubberName, sourceName: c.sourceName, totalEpisodes: c.totalEpisodes,
+      titleOriginal: c.titleOriginal, animelibTeam: c.animelibTeam,
+    }
+  }
   // Prefer the host-resolved stream url (no token needed → guests don't need login)
   let kodikUrl = c.kodikUrl || ''
   if (!kodikUrl) {
@@ -53,6 +73,7 @@ async function resolveContent(c: WtContent): Promise<PlayerState> {
     kodikUrl, releaseId: c.releaseId, sourceId: c.sourceId, position: c.position,
     episodeName: c.episodeName || `Эпизод ${c.position}`, releaseName: c.releaseName,
     dubberName: c.dubberName, sourceName: c.sourceName, totalEpisodes: c.totalEpisodes,
+    titleOriginal: c.titleOriginal,
   }
 }
 
@@ -103,10 +124,10 @@ export default function PlayerPage() {
 
   const playerUrl = useMemo(() => {
     if (!state) return ''
+    if (!state.kodikUrl && !state.animelibTeam) return ''
     const subtitle = [state.dubberName, state.sourceName, `серия ${state.position}`]
       .filter(Boolean).join(' · ')
     const params = new URLSearchParams({
-      url: state.kodikUrl,
       title: state.releaseName ?? state.episodeName,
       subtitle,
       releaseId: state.releaseId,
@@ -114,6 +135,9 @@ export default function PlayerPage() {
       position: String(state.position),
       design,
     })
+    if (state.animelibTeam) params.set('animelibTeam', state.animelibTeam)
+    else params.set('url', state.kodikUrl!)
+    if (state.titleOriginal) params.set('origTitle', state.titleOriginal)
     const token = localStorage.getItem('anixart_token')
     if (token) params.set('token', token)
     const uid = localStorage.getItem('anixart_user_id')
@@ -277,21 +301,31 @@ export default function PlayerPage() {
     setLoadingNext(true)
     setNextError('')
     try {
-      // Озвучку могли сменить прямо в плеере — продолжаем в ней, а не в исходной.
-      const sourceId = currentSource() ?? state.sourceId
-      const dubberName = currentDubber()
-      const data = await getEpisodeTarget(state.releaseId, sourceId, pos)
-      const rawUrl = data.episode?.url || ''
-      if (!rawUrl) { setNextError(msg?.missing ?? 'Серия недоступна'); return }
-      const kodikUrl = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl
-      if (!isPlayableUrl(kodikUrl)) { setNextError('Источник не поддерживается плеером'); return }
-      const nextState: PlayerState = {
-        ...state, kodikUrl, position: pos, sourceId, dubberName,
-        episodeName: data.episode?.name || `Эпизод ${pos}`,
+      let nextState: PlayerState
+      if (state.animelibTeam) {
+        // AnimeLib source: no url to pre-fetch — /player resolves this specific
+        // team+episode server-side on load, same as the very first navigation.
+        nextState = {
+          ...state, position: pos,
+          episodeName: `Эпизод ${pos}`,
+        }
+      } else {
+        // Озвучку могли сменить прямо в плеере — продолжаем в ней, а не в исходной.
+        const sourceId = currentSource() ?? state.sourceId
+        const dubberName = currentDubber()
+        const data = await getEpisodeTarget(state.releaseId, sourceId, pos)
+        const rawUrl = data.episode?.url || ''
+        if (!rawUrl) { setNextError(msg?.missing ?? 'Серия недоступна'); return }
+        const kodikUrl = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl
+        if (!isPlayableUrl(kodikUrl)) { setNextError('Источник не поддерживается плеером'); return }
+        nextState = {
+          ...state, kodikUrl, position: pos, sourceId, dubberName,
+          episodeName: data.episode?.name || `Эпизод ${pos}`,
+        }
       }
       saveWatchProgress({
-        releaseId: state.releaseId, releaseTitle: state.releaseName, sourceId,
-        sourceName: state.sourceName, typeName: dubberName, episodePosition: pos,
+        releaseId: state.releaseId, releaseTitle: state.releaseName, sourceId: nextState.sourceId,
+        sourceName: state.sourceName, typeName: nextState.dubberName, episodePosition: pos,
         episodeName: nextState.episodeName, updatedAt: Date.now(),
       })
       setState(nextState) // iframe reloads (key) + host useEffect re-sends content

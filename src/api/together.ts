@@ -15,6 +15,8 @@ export interface WtContent {
   sourceName?: string
   totalEpisodes?: number
   kodikUrl?: string // host-resolved stream url — lets guests play without a token
+  titleOriginal?: string
+  animelibTeam?: string
 }
 export interface WtPlayback { time: number; paused: boolean }
 

@@ -6,6 +6,7 @@ import ListBackup from '../components/ListBackup'
 import NotifySettings from '../components/NotifySettings'
 import ShikimoriSettings from '../components/ShikimoriSettings'
 import ShikimoriMigrate from '../components/ShikimoriMigrate'
+import AnimelibSettings from '../components/AnimelibSettings'
 import FeedbackForm from '../components/FeedbackForm'
 import { APP_VERSION } from '../lib/changelog'
 import { useDesign } from '../lib/design'
@@ -22,6 +23,7 @@ export default function SettingsPage() {
       {session && <NotifySettings />}
       {session && <ShikimoriSettings />}
       {session && <ShikimoriMigrate />}
+      {session && <AnimelibSettings />}
       <ListBackup />
       <FeedbackForm />
 
