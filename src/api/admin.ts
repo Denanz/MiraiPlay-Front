@@ -83,3 +83,17 @@ export async function banUser(adminKey: string, value: string): Promise<void> {
 export async function unbanUser(adminKey: string, value: string): Promise<void> {
   await api.post('/api/v1/admin/denylist/user', { value, action: 'unban' }, { headers: { 'X-Admin-Key': adminKey } })
 }
+
+// Приватный APK хаба — не раздаётся публично, только за ADMIN_KEY.
+export async function downloadHubApk(adminKey: string): Promise<void> {
+  const res = await api.get('/api/v1/admin/hub-apk', {
+    headers: { 'X-Admin-Key': adminKey },
+    responseType: 'blob',
+  })
+  const url = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'mirai-hub.apk'
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}

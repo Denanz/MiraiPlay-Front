@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getStorageBreakdown, getSpotlightOverride, setSpotlightOverride, getTelemetry,
-  banIp, unbanIp, banUser, unbanUser,
+  banIp, unbanIp, banUser, unbanUser, downloadHubApk,
   type StorageBreakdown, type Telemetry,
 } from '../api/admin'
 
@@ -54,6 +54,21 @@ export default function AdminPage() {
   const [ipInput, setIpInput] = useState('')
   const [userInput, setUserInput] = useState('')
   const [denylistBusy, setDenylistBusy] = useState(false)
+
+  const [hubApkBusy, setHubApkBusy] = useState(false)
+  const [hubApkError, setHubApkError] = useState('')
+
+  const fetchHubApk = async () => {
+    setHubApkBusy(true)
+    setHubApkError('')
+    try {
+      await downloadHubApk(adminKey)
+    } catch {
+      setHubApkError('Не удалось скачать APK')
+    } finally {
+      setHubApkBusy(false)
+    }
+  }
 
   const load = async (key: string) => {
     setLoading(true)
@@ -273,6 +288,17 @@ export default function AdminPage() {
           </div>
         </>
       )}
+
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-2">Хаб</h2>
+      <div className="panel p-5 mb-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">Приватное Android-приложение MiraiHub (mirai.denanz.fun) — только для тебя.</p>
+          <button onClick={fetchHubApk} disabled={hubApkBusy} className="btn-ghost !py-1.5 !px-3 text-sm shrink-0">
+            {hubApkBusy ? 'Скачиваю…' : '⬇ Скачать APK'}
+          </button>
+        </div>
+        {hubApkError && <p className="text-sm text-red-400 mt-2">{hubApkError}</p>}
+      </div>
 
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-2">«В центре внимания»</h2>
       <div className="panel p-5 mb-6">
