@@ -1,6 +1,6 @@
-# MiraiHub Front
+# MiraiPlay Front
 
-React/Vite фронтенд аниме-сервиса MiraiHub — SPA на вебе и нативное Android-приложение (Capacitor) из одной кодовой базы. Бэкенд — отдельный репозиторий [MiraiHub API](https://github.com/) (edge-шлюз перед публичным аниме-API).
+React/Vite фронтенд аниме-сервиса MiraiPlay — SPA на вебе и нативное Android-приложение (Capacitor) из одной кодовой базы. Бэкенд — отдельный репозиторий [MiraiPlay API](https://github.com/) (edge-шлюз перед публичным аниме-API).
 
 Стек: **React 18 · TypeScript · Vite · Tailwind CSS · React Router · Capacitor (Android)**.
 

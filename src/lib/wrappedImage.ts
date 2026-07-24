@@ -64,7 +64,7 @@ export function renderWrappedCard(card: WrappedCard): HTMLCanvasElement {
 
   ctx.fillStyle = '#c4a5fd'
   ctx.font = '600 34px "Inter", system-ui, sans-serif'
-  ctx.fillText('MiraiHub', W / 2, 110)
+  ctx.fillText('MiraiPlay', W / 2, 110)
 
   ctx.fillStyle = '#ffffff'
   ctx.font = '800 76px "Inter", system-ui, sans-serif'
@@ -145,7 +145,7 @@ export async function shareWrappedCard(card: WrappedCard): Promise<void> {
   const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
   if (!blob) return
 
-  const file = new File([blob], 'miraihub-wrapped.png', { type: 'image/png' })
+  const file = new File([blob], 'miraiplay-wrapped.png', { type: 'image/png' })
   const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean }
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
@@ -159,7 +159,7 @@ export async function shareWrappedCard(card: WrappedCard): Promise<void> {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'miraihub-wrapped.png'
+  a.download = 'miraiplay-wrapped.png'
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 }

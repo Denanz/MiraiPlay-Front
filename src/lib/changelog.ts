@@ -18,6 +18,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.20.1',
+    kind: 'fix',
+    changes: [
+      'Переименование в MiraiPlay',
+    ],
+  },
+  {
     version: '2.20',
     kind: 'feature',
     intro: 'Поиск и каталог были двумя разными разделами без особой причины — теперь это одно и то же место.',

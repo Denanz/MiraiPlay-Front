@@ -122,7 +122,7 @@ export default function StatsPage() {
                 : profile.is_sponsor && <span className="mdk-chip mdk-chip-acc" style={{ marginLeft: 8, verticalAlign: 'middle' }}>Спонсор</span>}
             </h1>
             <div className="mdp-stats-sub">
-              на MiraiHub с {formatDate(profile.register_date)} · последняя активность {formatDate(profile.last_activity_time)}
+              на MiraiPlay с {formatDate(profile.register_date)} · последняя активность {formatDate(profile.last_activity_time)}
             </div>
           </div>
         </div>

@@ -86,7 +86,7 @@ export default function ShikimoriMigrate() {
             dir === 'out' ? 'bg-accent text-black' : 'bg-white/[0.06] text-muted hover:text-text'
           }`}
         >
-          MiraiHub → Shikimori
+          MiraiPlay → Shikimori
         </button>
         <button
           onClick={() => setDir('in')}
@@ -94,7 +94,7 @@ export default function ShikimoriMigrate() {
             dir === 'in' ? 'bg-accent text-black' : 'bg-white/[0.06] text-muted hover:text-text'
           }`}
         >
-          Shikimori → MiraiHub
+          Shikimori → MiraiPlay
         </button>
       </div>
 
@@ -124,7 +124,7 @@ export default function ShikimoriMigrate() {
         <div className="rounded-lg border border-amber-400/40 bg-amber-400/[0.06] p-3 mb-4">
           <p className="text-sm text-amber-200">
             {dir === 'out'
-              ? 'Записи на Shikimori будут перезаписаны данными из MiraiHub.'
+              ? 'Записи на Shikimori будут перезаписаны данными из MiraiPlay.'
               : 'Списки и оценки здесь будут перезаписаны данными с Shikimori.'}
             {' '}Отменить одной кнопкой нельзя — восстановить можно только из скачанного бэкапа.
           </p>

@@ -40,7 +40,7 @@ export default function InstallPrompt() {
                     panel p-3 flex items-center gap-3 shadow-2xl border-accent/20">
       <span className="w-9 h-9 shrink-0 rounded-lg bg-accent/20 text-accent flex items-center justify-center">📲</span>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium">Установить MiraiHub</div>
+        <div className="text-sm font-medium">Установить MiraiPlay</div>
         <div className="text-xs text-muted">Быстрый запуск с домашнего экрана</div>
       </div>
       <button onClick={install} className="chip chip-active shrink-0">Установить</button>

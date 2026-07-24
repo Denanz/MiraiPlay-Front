@@ -39,7 +39,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm relative">
         <div className="flex items-center justify-center mb-8">
-          <img src="/brand-wordmark.png" alt="MiraiHub" className="h-10 w-auto" />
+          <img src="/brand-wordmark.png" alt="MiraiPlay" className="h-10 w-auto" />
         </div>
 
         <div className="panel p-7">

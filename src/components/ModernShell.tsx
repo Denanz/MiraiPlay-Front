@@ -47,7 +47,7 @@ export default function ModernShell() {
         <div className="md-brand-row">
           <NavLink to="/browse" className="md-brand">
             <img src="/brand-mark-64.png" alt="" className="mark" />
-            <span className="lbl">MiraiHub</span>
+            <span className="lbl">MiraiPlay</span>
           </NavLink>
           <button
             type="button"

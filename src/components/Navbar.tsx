@@ -47,7 +47,7 @@ export default function Navbar() {
         <NavLink to="/home" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 shrink-0">
           <img src="/brand-mark-64.png" alt="" width={24} height={24} className="shrink-0" />
           <span className="font-display text-base font-bold tracking-tight text-text">
-            Mirai<span className="text-accent">Hub</span>
+            Mirai<span className="text-accent">Play</span>
           </span>
         </NavLink>
 

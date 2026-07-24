@@ -1,6 +1,6 @@
 {
-  "name": "MiraiHub",
-  "short_name": "MiraiHub",
+  "name": "MiraiPlay",
+  "short_name": "MiraiPlay",
   "description": "Просмотр аниме — каталог, закладки и плеер",
   "start_url": "/browse",
   "scope": "/",

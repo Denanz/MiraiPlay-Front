@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'fun.denanz.anime',
-  appName: 'MiraiHub',
+  appName: 'MiraiPlay',
   webDir: 'dist'
 };
 
