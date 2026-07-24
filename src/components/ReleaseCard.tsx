@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toggleFavorite } from '../api/bookmarks'
 import { getWatchProgress } from '../api/episodes'
 import { hasGrade, type Release } from '../api/releases'
@@ -44,7 +44,6 @@ export default function ReleaseCard({ release }: Props) {
   const progress = useMemo(() => getWatchProgress(release.id), [release.id])
   const [isFavorite, setIsFavorite] = useState(!!release.is_favorite)
 
-  const openRelease = () => navigate(`/release/${release.id}`)
   const openWatch = (event: React.MouseEvent) => {
     event.preventDefault()
     event.stopPropagation()
@@ -65,7 +64,7 @@ export default function ReleaseCard({ release }: Props) {
 
   if (design === 'modern') {
     return (
-      <a className="mdk-card" onClick={openRelease}>
+      <Link to={`/release/${release.id}`} className="mdk-card">
         <div className="mdk-poster" style={release.image ? { backgroundImage: `url(${poster})` } : undefined}>
           {shiki > 0 ? (
             <span className="mdk-rbadge">★{shiki.toFixed(2)}</span>
@@ -93,14 +92,14 @@ export default function ReleaseCard({ release }: Props) {
             {isFavorite ? '★' : '☆'}
           </span>
         </p>
-      </a>
+      </Link>
     )
   }
 
   return (
-    <button
-      onClick={openRelease}
-      className="group text-left focus:outline-none"
+    <Link
+      to={`/release/${release.id}`}
+      className="group text-left focus:outline-none block"
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-surface
                       border border-white/[0.06] transition-all duration-300
@@ -172,6 +171,6 @@ export default function ReleaseCard({ release }: Props) {
           </p>
         )}
       </div>
-    </button>
+    </Link>
   )
 }

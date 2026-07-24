@@ -13,6 +13,7 @@ import {
 } from '../api/episodes'
 import type { WatchProgressEntry } from '../api/episodes'
 import { getRelease } from '../api/releases'
+import { isPlayableUrl } from '../lib/playableHost'
 import { getContinueWatching, watchedPct, fmtTime } from '../api/progress'
 import { getEpisodeRatings } from '../api/ratings'
 import type { EpisodeType, EpisodeSource, Episode } from '../api/episodes'
@@ -174,6 +175,10 @@ export default function WatchPage() {
         return
       }
       const kodikUrl = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl
+      if (!isPlayableUrl(kodikUrl)) {
+        alert(`Источник «${selectedSource.name}» сейчас не поддерживается плеером — выберите другой в списке озвучек.`)
+        return
+      }
 
       saveWatchProgress({
         releaseId: id,

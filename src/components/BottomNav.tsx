@@ -10,10 +10,6 @@ const tabs = [
     icon: <><path d="M4 5h16M4 12h16M4 19h16" /></>,
   },
   {
-    to: '/search', label: 'Поиск',
-    icon: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
-  },
-  {
     to: '/bookmarks', label: 'Закладки',
     icon: <path d="M6 4h12v16l-6-4-6 4z" />,
   },

@@ -388,14 +388,14 @@ export default function ReleasePage() {
 
   const meta: Array<[string, React.ReactNode]> = []
   if (release.year) meta.push(['Год', release.year])
-  const statusLabel = { 1: 'Онгоинг', 2: 'Вышел', 3: 'Анонс' }[release.status?.id ?? 0]
+  const statusLabel = { 1: 'Вышел', 2: 'Онгоинг', 3: 'Анонс' }[release.status?.id ?? 0]
   if (statusLabel) meta.push(['Статус', statusLabel])
   if (release.studio) {
     meta.push([
       'Студия',
       <button
         className="text-accent-soft hover:underline"
-        onClick={() => navigate(`/search?q=${encodeURIComponent(release.studio!)}`)}
+        onClick={() => navigate(`/browse?q=${encodeURIComponent(release.studio!)}`)}
       >
         {release.studio}
       </button>,
@@ -490,7 +490,7 @@ export default function ReleasePage() {
                 <span className="mdk-chip">{release.episodes_released}{release.episodes_total ? ` / ${release.episodes_total}` : ''} серий</span>
               )}
               {genres.slice(0, 4).map(g => (
-                <button key={g} className="mdk-chip" onClick={() => navigate(`/search?q=${encodeURIComponent(g)}`)}>{g}</button>
+                <button key={g} className="mdk-chip" onClick={() => navigate(`/browse?q=${encodeURIComponent(g)}`)}>{g}</button>
               ))}
             </div>
             <div className="mdp-release-cta">
@@ -572,7 +572,7 @@ export default function ReleasePage() {
                 <div className="mdk-rowhead"><h2>Порядок просмотра</h2></div>
                 <div className="mdk-glass mdk-pad flex flex-col gap-0.5">
                   {release.watch_order.map((n, i) => (
-                    <button key={n.id} onClick={() => !n.current && navigate(`/search?q=${encodeURIComponent(n.name)}`)} disabled={n.current}
+                    <button key={n.id} onClick={() => !n.current && navigate(`/browse?q=${encodeURIComponent(n.name)}`)} disabled={n.current}
                       className="flex gap-3 items-center py-2 px-1 text-left">
                       <span className={`mdk-chip ${n.current ? 'mdk-chip-acc' : ''}`} style={{ width: 26, height: 26, justifyContent: 'center', padding: 0 }}>{i + 1}</span>
                       <span>
@@ -726,7 +726,7 @@ export default function ReleasePage() {
               {genres.map(g => (
                 <button
                   key={g}
-                  onClick={() => navigate(`/search?q=${encodeURIComponent(g)}`)}
+                  onClick={() => navigate(`/browse?q=${encodeURIComponent(g)}`)}
                   className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-xs text-muted hover:text-text hover:border-white/15"
                 >
                   {g}
@@ -899,7 +899,7 @@ export default function ReleasePage() {
             {release.watch_order.map((n, i) => (
               <li key={n.id}>
                 <button
-                  onClick={() => !n.current && navigate(`/search?q=${encodeURIComponent(n.name)}`)}
+                  onClick={() => !n.current && navigate(`/browse?q=${encodeURIComponent(n.name)}`)}
                   disabled={n.current}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors
                     ${n.current ? 'bg-accent/[0.12] border border-accent/30' : 'hover:bg-white/[0.05] border border-transparent'}`}

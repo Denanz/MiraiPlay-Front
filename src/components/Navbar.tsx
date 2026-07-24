@@ -7,7 +7,6 @@ const mainLinks = [
   { to: '/home', label: 'Главная' },
   { to: '/browse', label: 'Каталог' },
   { to: '/bookmarks', label: 'Закладки' },
-  { to: '/search', label: 'Поиск' },
 ]
 
 const moreLinks = [
@@ -46,7 +45,7 @@ export default function Navbar() {
                     pt-[env(safe-area-inset-top)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         <NavLink to="/home" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-accent shadow-[0_0_12px_rgb(var(--accent-rgb)/0.8)]" />
+          <img src="/brand-mark-64.png" alt="" width={24} height={24} className="shrink-0" />
           <span className="font-display text-base font-bold tracking-tight text-text">
             Mirai<span className="text-accent">Hub</span>
           </span>

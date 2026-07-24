@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { computeWrapped, type WrappedStats } from '../lib/wrapped'
 import { getProfile, type AnixartProfile } from '../api/profile'
 import { useAuth } from '../store/auth'
@@ -136,9 +136,9 @@ export default function WrappedPage() {
           <h2 className="text-base font-semibold mb-4">Самые высокие оценки в истории</h2>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {stats.topRated.map((r) => (
-              <button
+              <Link
                 key={r.id}
-                onClick={() => navigate(`/release/${r.id}`)}
+                to={`/release/${r.id}`}
                 className="group text-left"
               >
                 <div className="aspect-[2/3] rounded-lg overflow-hidden bg-surface border border-white/[0.06] group-hover:border-accent/40">
@@ -146,7 +146,7 @@ export default function WrappedPage() {
                 </div>
                 <div className="text-xs text-text/85 mt-1 line-clamp-2">{r.title_ru}</div>
                 <div className="text-[11px] text-accent-soft">★ {(r.grade ?? 0).toFixed(2)}</div>
-              </button>
+              </Link>
             ))}
           </div>
         </div>

@@ -1,14 +1,37 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getSchedule, DAYS, DAY_LABELS, todayKey, SEASONS, currentSeason, type Weekday } from '../api/schedule'
 import { getFilter, extractReleases, type Release } from '../api/releases'
+import { getProfileList, extractBookmarkRelease } from '../api/bookmarks'
 import ReleaseCard from '../components/ReleaseCard'
 import Spinner from '../components/Spinner'
 import { useDesign } from '../lib/design'
+import { useAuth } from '../store/auth'
 import { img } from '../lib/img'
 import Img from '../components/Img'
 import { syncWidget } from '../lib/widgetSync'
 import '../styles/modern-schedule.css'
+
+/** Все id из списков «Смотрю» и «В планах» — для фильтра «только мои» в расписании. */
+async function loadMyOngoingIds(): Promise<Set<number>> {
+  const ids = new Set<number>()
+  for (const listId of [1, 2]) {
+    for (let page = 0; page < 20; page++) {
+      let content: ReturnType<typeof extractBookmarkRelease>[] = []
+      let count = 0
+      try {
+        const data = await getProfileList(listId, page)
+        count = (data.content || []).length
+        content = (data.content || []).map(extractBookmarkRelease)
+      } catch {
+        break
+      }
+      for (const r of content) if (r) ids.add(r.id)
+      if (count < 20) break
+    }
+  }
+  return ids
+}
 
 type Mode = 'schedule' | 'seasons'
 
@@ -17,7 +40,7 @@ const YEARS = Array.from({ length: NOW_YEAR + 1 - 1990 + 1 }, (_, i) => NOW_YEAR
 
 export default function SchedulePage() {
   const design = useDesign()
-  const navigate = useNavigate()
+  const { session } = useAuth()
   const [mode, setMode] = useState<Mode>('schedule')
 
   // ── Schedule (airing calendar) ──
@@ -30,6 +53,20 @@ export default function SchedulePage() {
     setLoadingSchedule(true)
     getSchedule().then(setSchedule).catch(() => setSchedule(null)).finally(() => setLoadingSchedule(false))
   }, [mode, schedule])
+
+  // «Только мои» — сузить недельное расписание до того, что уже смотрю
+  // или запланировал(а), а не листать всё, что вообще выходит на неделе.
+  const [onlyMine, setOnlyMine] = useState(false)
+  const [myIds, setMyIds] = useState<Set<number> | null>(null)
+  const [loadingMine, setLoadingMine] = useState(false)
+  useEffect(() => {
+    if (!onlyMine || myIds || !session) return
+    setLoadingMine(true)
+    loadMyOngoingIds().then(setMyIds).finally(() => setLoadingMine(false))
+  }, [onlyMine, myIds, session])
+
+  const filterMine = (items: Release[]): Release[] =>
+    onlyMine && myIds ? items.filter(r => myIds.has(r.id)) : items
 
   // Push today's airing titles to the "Расписание · сегодня" home-screen widget.
   useEffect(() => {
@@ -82,6 +119,11 @@ export default function SchedulePage() {
           <div className="flex gap-2">
             <button onClick={() => setMode('schedule')} className={`mdk-chip ${mode === 'schedule' ? 'mdk-chip-acc' : ''}`}>📅 Онгоинги</button>
             <button onClick={() => setMode('seasons')} className={`mdk-chip ${mode === 'seasons' ? 'mdk-chip-acc' : ''}`}>🍂 Сезоны</button>
+            {mode === 'schedule' && session && (
+              <button onClick={() => setOnlyMine(v => !v)} className={`mdk-chip ${onlyMine ? 'mdk-chip-acc' : ''}`}>
+                {loadingMine ? '…' : '★ Только мои'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -90,10 +132,12 @@ export default function SchedulePage() {
             <Spinner variant="grid" />
           ) : !schedule ? (
             <div className="text-center text-muted py-20 text-sm">Не удалось загрузить расписание</div>
+          ) : onlyMine && myIds && orderedDays.every(day => filterMine(schedule[day]).length === 0) ? (
+            <div className="text-center text-muted py-20 text-sm">На этой неделе ничего из «Смотрю» и «В планах» не выходит</div>
           ) : (
             <div className="mdp-schedule-week">
               {orderedDays.map(day => {
-                const items = schedule[day]
+                const items = filterMine(schedule[day])
                 const isToday = day === today
                 return (
                   <div key={day} className={`mdp-schedule-day ${isToday ? 'today' : ''}`}>
@@ -105,7 +149,7 @@ export default function SchedulePage() {
                     {items.map(r => {
                       const poster = img(r.image || '')
                       return (
-                        <div key={r.id} className="mdp-schedule-item" onClick={() => navigate(`/release/${r.id}`)}>
+                        <Link key={r.id} to={`/release/${r.id}`} className="mdp-schedule-item">
                           {poster ? (
                             <Img src={poster} proxy={false} alt={r.title_ru} className="mdp-schedule-th" imgClassName="w-full h-full object-cover" />
                           ) : (
@@ -119,7 +163,7 @@ export default function SchedulePage() {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </Link>
                       )
                     })}
                   </div>
@@ -167,9 +211,14 @@ export default function SchedulePage() {
     <div>
       <h1 className="text-xl font-bold mb-5">Расписание</h1>
 
-      <div className="flex gap-1.5 mb-6">
+      <div className="flex gap-1.5 mb-6 items-center">
         <button onClick={() => setMode('schedule')} className={`tab ${mode === 'schedule' ? 'tab-active' : ''}`}>📅 Онгоинги</button>
         <button onClick={() => setMode('seasons')} className={`tab ${mode === 'seasons' ? 'tab-active' : ''}`}>🍂 Сезоны</button>
+        {mode === 'schedule' && session && (
+          <button onClick={() => setOnlyMine(v => !v)} className={`chip ml-auto ${onlyMine ? 'chip-active' : ''}`}>
+            {loadingMine ? '…' : '★ Только мои'}
+          </button>
+        )}
       </div>
 
       {mode === 'schedule' ? (
@@ -177,10 +226,12 @@ export default function SchedulePage() {
           <Spinner variant="grid" />
         ) : !schedule ? (
           <div className="text-center text-muted py-20 text-sm">Не удалось загрузить расписание</div>
+        ) : onlyMine && myIds && orderedDays.every(day => filterMine(schedule[day]).length === 0) ? (
+          <div className="text-center text-muted py-20 text-sm">На этой неделе ничего из «Смотрю» и «В планах» не выходит</div>
         ) : (
           <div className="space-y-8">
             {orderedDays.map(day => {
-              const items = schedule[day]
+              const items = filterMine(schedule[day])
               if (!items.length) return null
               return (
                 <section key={day}>

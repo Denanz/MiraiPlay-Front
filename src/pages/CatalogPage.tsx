@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getFilter, extractReleases } from '../api/releases'
+import { useNavigate, useNavigationType, useSearchParams } from 'react-router-dom'
+import { getFilter, searchReleases, extractReleases } from '../api/releases'
 import type { Release } from '../api/releases'
 import { getProfileList } from '../api/bookmarks'
 import ReleaseCard from '../components/ReleaseCard'
@@ -22,9 +22,11 @@ const SORTS: Array<{ label: string; value: number }> = [
   { label: 'По рейтингу', value: 3 },
 ]
 
+// Значения соответствуют status.id, который реально возвращает Anixart
+// (1 = Вышел, 2 = Выходит/Онгоинг, 3 = Анонс) — см. ReleasePage.tsx.
 const STATUSES: Array<{ label: string; value: number }> = [
-  { label: 'Вышел', value: 2 },
-  { label: 'Онгоинг', value: 1 },
+  { label: 'Вышел', value: 1 },
+  { label: 'Онгоинг', value: 2 },
   { label: 'Анонс', value: 3 },
 ]
 
@@ -38,6 +40,25 @@ const GENRES = [
 
 const CURRENT_YEAR = new Date().getFullYear() + 1
 const YEARS = Array.from({ length: CURRENT_YEAR - 1965 + 1 }, (_, i) => CURRENT_YEAR - i)
+
+// Снимок ленты на момент ухода со страницы — переживает размонтирование
+// (в отличие от useState), поэтому «назад» из карточки тайтла возвращает
+// на то же место, а не в начало заново загруженного списка.
+interface CatalogSnapshot {
+  activeTab: number
+  sort: number
+  genres: string[]
+  yearFrom: number | ''
+  yearTo: number | ''
+  studio: string
+  status: number | ''
+  query: string
+  releases: Release[]
+  page: number
+  hasMore: boolean
+  scrollY: number
+}
+let catalogSnapshot: CatalogSnapshot | null = null
 
 function FilterDropdown({
   label, summary, open, onToggle, onClose, align = 'left', children,
@@ -74,10 +95,37 @@ function FilterDropdown({
   )
 }
 
+// Native <select> here used to pop the OS's own year list over the whole page —
+// unstyled, and on mobile long enough to overlap the card grid below. Custom
+// scrollable button lists match every other filter and stay inside the panel.
+function YearOptions({ value, onChange }: { value: number | ''; onChange: (v: number | '') => void }) {
+  return (
+    <div className="max-h-56 overflow-y-auto flex flex-col gap-0.5 pr-1">
+      <button onClick={() => onChange('')}
+        className={`text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors ${value === '' ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}>
+        Любой
+      </button>
+      {YEARS.map(y => (
+        <button key={y} onClick={() => onChange(y)}
+          className={`text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors ${value === y ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}>
+          {y}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function CatalogPage() {
   const navigate = useNavigate()
   const design = useDesign()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [surpriseBusy, setSurpriseBusy] = useState(false)
+
+  // Восстанавливаем снимок только при возврате назад/вперёд по истории — обычный
+  // переход на страницу (клик по «Каталог» в меню) всегда начинает с чистого листа.
+  const navigationType = useNavigationType()
+  const restoreSnapshot = navigationType === 'POP' ? catalogSnapshot : null
+  const restoredRef = useRef(!!restoreSnapshot)
 
   // "Сюрприз": jump to a random title from the user's "watching"/"planned" lists.
   const handleSurprise = useCallback(async () => {
@@ -103,21 +151,33 @@ export default function CatalogPage() {
     }
   }, [navigate])
 
-  const [activeTab, setActiveTab] = useState(0)
-  const [sort, setSort] = useState(0)
-  const [genres, setGenres] = useState<string[]>([])
-  const [yearFrom, setYearFrom] = useState<number | ''>('')
-  const [yearTo, setYearTo] = useState<number | ''>('')
-  const [studio, setStudio] = useState('')
-  const [studioInput, setStudioInput] = useState('')
-  const [status, setStatus] = useState<number | ''>('')
+  const [activeTab, setActiveTab] = useState(() => restoreSnapshot?.activeTab ?? 0)
+  const [sort, setSort] = useState(() => restoreSnapshot?.sort ?? 0)
+  const [genres, setGenres] = useState<string[]>(() => restoreSnapshot?.genres ?? [])
+  const [yearFrom, setYearFrom] = useState<number | ''>(() => restoreSnapshot?.yearFrom ?? '')
+  const [yearTo, setYearTo] = useState<number | ''>(() => restoreSnapshot?.yearTo ?? '')
+  const [studio, setStudio] = useState(() => restoreSnapshot?.studio ?? '')
+  const [studioInput, setStudioInput] = useState(() => restoreSnapshot?.studio ?? '')
+  const [status, setStatus] = useState<number | ''>(() => restoreSnapshot?.status ?? '')
   const [openSection, setOpenSection] = useState<string | null>(null)
   const toggleSection = (id: string) => setOpenSection(prev => (prev === id ? null : id))
 
-  const [releases, setReleases] = useState<Release[]>([])
+  // Поиск живёт прямо в каталоге — раньше это была отдельная страница /search.
+  // Пока запрос не пуст, фильтры (жанры/год/статус/студия/сортировка/вкладки)
+  // не показываются: поисковый эндпоинт Anixart принимает только текст запроса
+  // и их бы просто молча игнорировал.
+  const [query, setQuery] = useState(() => restoreSnapshot?.query ?? searchParams.get('q') ?? '')
+  const [queryInput, setQueryInput] = useState(query)
+  const runSearch = (value: string) => {
+    setQuery(value)
+    setSearchParams(value ? { q: value } : {}, { replace: true })
+  }
+  const clearSearch = () => { setQueryInput(''); runSearch('') }
+
+  const [releases, setReleases] = useState<Release[]>(() => restoreSnapshot?.releases ?? [])
   const [loading, setLoading] = useState(false)
-  const [page, setPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(() => restoreSnapshot?.page ?? 0)
+  const [hasMore, setHasMore] = useState(() => restoreSnapshot?.hasMore ?? true)
 
   const buildBody = useCallback((pg: number) => {
     const body: Record<string, unknown> = {
@@ -145,7 +205,9 @@ export default function CatalogPage() {
     const requestId = ++requestIdRef.current
     setLoading(true)
     try {
-      const data = await getFilter(pg, buildBody(pg))
+      const data = query.trim()
+        ? await searchReleases(query.trim(), pg)
+        : await getFilter(pg, buildBody(pg))
       if (requestId !== requestIdRef.current) return
       const items: Release[] = extractReleases(data)
       setReleases(prev => replace ? items : [...prev, ...items])
@@ -155,15 +217,74 @@ export default function CatalogPage() {
     } finally {
       if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [buildBody])
+  }, [buildBody, query])
 
-  // Reload whenever any filter changes
+  // Reload whenever any filter changes — but not on the very first run after
+  // restoring a snapshot, otherwise "назад" would immediately wipe the
+  // restored list and start over from page 0.
   useEffect(() => {
+    if (restoredRef.current) { restoredRef.current = false; return }
     setPage(0)
     setReleases([])
     setHasMore(true)
     loadReleases(0, true)
   }, [loadReleases])
+
+  // Текущая прокрутка — в ref, а не читается по требованию: к моменту, когда
+  // отработает cleanup-эффект размонтирования, React уже подменил DOM на
+  // содержимое следующей страницы, и window.scrollY к этому моменту отражает
+  // ЕЁ (обычно более короткую) высоту.
+  //
+  // Фиксируем ТОЛЬКО на pointerdown, не на 'scroll' и не таймером/rAF.
+  // Дело не в том, что событие 'scroll' не долетает — а в обратном: обычный
+  // useEffect снимает обработчик АСИНХРОННО, уже после того как React обменял
+  // DOM на содержимое следующей страницы. Если что-то продолжает слушать
+  // 'scroll' (или просто периодически перечитывает window.scrollY) в этом
+  // промежутке, оно ловит момент, когда браузер уже поджал прокрутку под
+  // высоту НОВОЙ (обычно куда более короткой) страницы, и затирает этим нулём
+  // уже верно сохранённое значение. pointerdown — разовое событие ровно в
+  // момент намерения перейти, ещё до того как переход вообще начался.
+  const scrollYRef = useRef(0)
+  useEffect(() => {
+    const onPointerDown = () => { scrollYRef.current = window.scrollY }
+    document.addEventListener('pointerdown', onPointerDown, { capture: true })
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, { capture: true })
+    }
+  }, [])
+
+  // Прокрутка к сохранённому месту — после того как восстановленный список
+  // уже в разметке (иначе страница ещё недостаточно высокая для scrollTo).
+  // Догрузка следующей страницы (если сразу после восстановления сработал
+  // сторож бесконечной прокрутки) меняет высоту документа и может сбить
+  // только что применённую позицию — поэтому в течение короткого окна после
+  // возврата позиция всё время удерживается заново, кадр за кадром, а не
+  // выставляется один раз.
+  useEffect(() => {
+    if (!restoreSnapshot) return
+    const y = restoreSnapshot.scrollY
+    scrollYRef.current = y
+    let raf = 0
+    const until = Date.now() + 1500
+    const hold = () => {
+      if (window.scrollY !== y) window.scrollTo(0, y)
+      if (Date.now() < until) raf = requestAnimationFrame(hold)
+    }
+    raf = requestAnimationFrame(hold)
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Снимок обновляется на каждый рендер и сохраняется при уходе со страницы.
+  const snapshotRef = useRef<CatalogSnapshot>()
+  snapshotRef.current = { activeTab, sort, genres, yearFrom, yearTo, studio, status, query, releases, page, hasMore, scrollY: 0 }
+  useEffect(() => {
+    return () => {
+      if (snapshotRef.current) {
+        catalogSnapshot = { ...snapshotRef.current, scrollY: scrollYRef.current }
+      }
+    }
+  }, [])
 
   const loadMore = useCallback(() => {
     const nextPage = page + 1
@@ -206,67 +327,83 @@ export default function CatalogPage() {
   if (design === 'modern') {
     return (
       <div>
-        <div className="mdk-rowhead"><h2>Каталог</h2></div>
+        <div className="mdk-rowhead">
+          <div>
+            <h2>Каталог</h2>
+            {query && <div className="mdk-cs" style={{ marginTop: 4 }}>Поиск: «{query}»</div>}
+          </div>
+        </div>
         <div className="mdp-browse-filters mdk-glass mdk-pad">
-          {TABS.map((tab, i) => (
-            <button key={i} className={`mdk-chip ${activeTab === i ? 'mdk-chip-acc' : ''}`} onClick={() => setActiveTab(i)}>
-              {tab.label}
-            </button>
-          ))}
-          <span className="mdp-browse-sep" />
-          <FilterDropdown label="Жанры" summary={genres.length ? `${genres.length}` : undefined}
-            open={openSection === 'genres'} onToggle={() => toggleSection('genres')} onClose={() => setOpenSection(null)}>
-            <div className="flex gap-1.5 flex-wrap max-h-72 overflow-y-auto">
-              {GENRES.map(g => (
-                <button key={g} onClick={() => toggleGenre(g)} className={`chip ${genres.includes(g) ? 'chip-active' : ''}`}>{g}</button>
+          <form onSubmit={e => { e.preventDefault(); runSearch(queryInput.trim()) }} className="mdp-browse-search">
+            <svg viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5" /></svg>
+            <input value={queryInput} onChange={e => setQueryInput(e.target.value)} placeholder="Название, жанр или студия…" />
+            {query && <button type="button" onClick={clearSearch} aria-label="Очистить поиск">✕</button>}
+          </form>
+          {!query && (
+            <>
+              <span className="mdp-browse-sep" />
+              {TABS.map((tab, i) => (
+                <button key={i} className={`mdk-chip ${activeTab === i ? 'mdk-chip-acc' : ''}`} onClick={() => setActiveTab(i)}>
+                  {tab.label}
+                </button>
               ))}
-            </div>
-          </FilterDropdown>
-          <FilterDropdown label="Год" summary={yearFrom || yearTo ? `${yearFrom || '…'}–${yearTo || '…'}` : undefined}
-            open={openSection === 'year'} onToggle={() => toggleSection('year')} onClose={() => setOpenSection(null)}>
-            <div className="flex items-center gap-2">
-              <select value={yearFrom} onChange={e => setYearFrom(e.target.value ? Number(e.target.value) : '')} className="input !py-2 !px-2.5 text-sm flex-1">
-                <option value="">от</option>{YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <span className="text-muted">—</span>
-              <select value={yearTo} onChange={e => setYearTo(e.target.value ? Number(e.target.value) : '')} className="input !py-2 !px-2.5 text-sm flex-1">
-                <option value="">до</option>{YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-          </FilterDropdown>
-          <FilterDropdown label="Статус" summary={STATUSES.find(s => s.value === status)?.label}
-            open={openSection === 'status'} onToggle={() => toggleSection('status')} onClose={() => setOpenSection(null)}>
-            <div className="flex flex-col gap-1">
-              {STATUSES.map(s => (
-                <button key={s.value} onClick={() => { setStatus(status === s.value ? '' : s.value); setOpenSection(null) }}
-                  className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${status === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}>{s.label}</button>
-              ))}
-            </div>
-          </FilterDropdown>
-          <FilterDropdown label="Студия" summary={studio || undefined}
-            open={openSection === 'studio'} onToggle={() => toggleSection('studio')} onClose={() => setOpenSection(null)}>
-            <form onSubmit={e => { e.preventDefault(); setStudio(studioInput.trim()); setOpenSection(null) }}>
-              <input autoFocus value={studioInput} onChange={e => setStudioInput(e.target.value)} placeholder="напр. MAPPA" className="input !py-2 !px-2.5 text-sm w-full mb-2" />
-              <div className="flex gap-2">
-                <button type="submit" className="chip chip-active flex-1">Применить</button>
-                {studio && <button type="button" onClick={() => { setStudio(''); setStudioInput(''); setOpenSection(null) }} className="chip">Сброс</button>}
-              </div>
-            </form>
-          </FilterDropdown>
-          <span style={{ flex: 1 }} />
-          <FilterDropdown label="Сортировка" summary={SORTS.find(s => s.value === sort)?.label} align="right"
-            open={openSection === 'sort'} onToggle={() => toggleSection('sort')} onClose={() => setOpenSection(null)}>
-            <div className="flex flex-col gap-1">
-              {SORTS.map(s => (
-                <button key={s.value} onClick={() => { setSort(s.value); setOpenSection(null) }}
-                  className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${sort === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}>{s.label}</button>
-              ))}
-            </div>
-          </FilterDropdown>
+              <span className="mdp-browse-sep" />
+              <FilterDropdown label="Жанры" summary={genres.length ? `${genres.length}` : undefined}
+                open={openSection === 'genres'} onToggle={() => toggleSection('genres')} onClose={() => setOpenSection(null)}>
+                <div className="flex gap-1.5 flex-wrap max-h-72 overflow-y-auto">
+                  {GENRES.map(g => (
+                    <button key={g} onClick={() => toggleGenre(g)} className={`chip ${genres.includes(g) ? 'chip-active' : ''}`}>{g}</button>
+                  ))}
+                </div>
+              </FilterDropdown>
+              <FilterDropdown label="Год" summary={yearFrom || yearTo ? `${yearFrom || '…'}–${yearTo || '…'}` : undefined}
+                open={openSection === 'year'} onToggle={() => toggleSection('year')} onClose={() => setOpenSection(null)}>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <div className="text-[11px] text-muted mb-1 px-1">От</div>
+                    <YearOptions value={yearFrom} onChange={setYearFrom} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[11px] text-muted mb-1 px-1">До</div>
+                    <YearOptions value={yearTo} onChange={setYearTo} />
+                  </div>
+                </div>
+              </FilterDropdown>
+              <FilterDropdown label="Статус" summary={STATUSES.find(s => s.value === status)?.label}
+                open={openSection === 'status'} onToggle={() => toggleSection('status')} onClose={() => setOpenSection(null)}>
+                <div className="flex flex-col gap-1">
+                  {STATUSES.map(s => (
+                    <button key={s.value} onClick={() => { setStatus(status === s.value ? '' : s.value); setOpenSection(null) }}
+                      className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${status === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}>{s.label}</button>
+                  ))}
+                </div>
+              </FilterDropdown>
+              <FilterDropdown label="Студия" summary={studio || undefined}
+                open={openSection === 'studio'} onToggle={() => toggleSection('studio')} onClose={() => setOpenSection(null)}>
+                <form onSubmit={e => { e.preventDefault(); setStudio(studioInput.trim()); setOpenSection(null) }}>
+                  <input autoFocus value={studioInput} onChange={e => setStudioInput(e.target.value)} placeholder="напр. MAPPA" className="input !py-2 !px-2.5 text-sm w-full mb-2" />
+                  <div className="flex gap-2">
+                    <button type="submit" className="chip chip-active flex-1">Применить</button>
+                    {studio && <button type="button" onClick={() => { setStudio(''); setStudioInput(''); setOpenSection(null) }} className="chip">Сброс</button>}
+                  </div>
+                </form>
+              </FilterDropdown>
+              <span style={{ flex: 1 }} />
+              <FilterDropdown label="Сортировка" summary={SORTS.find(s => s.value === sort)?.label} align="right"
+                open={openSection === 'sort'} onToggle={() => toggleSection('sort')} onClose={() => setOpenSection(null)}>
+                <div className="flex flex-col gap-1">
+                  {SORTS.map(s => (
+                    <button key={s.value} onClick={() => { setSort(s.value); setOpenSection(null) }}
+                      className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${sort === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}>{s.label}</button>
+                  ))}
+                </div>
+              </FilterDropdown>
+            </>
+          )}
           <button className="mdk-btn mdk-btn-ghost" onClick={handleSurprise} disabled={surpriseBusy}>🎲 {surpriseBusy ? 'Выбираю…' : 'Сюрприз'}</button>
         </div>
 
-        {genres.length > 0 && (
+        {!query && (genres.length > 0 || activeFilterCount > 0) && (
           <div className="mdp-browse-genrow">
             {genres.map(g => <span key={g} className="mdk-chip mdk-chip-acc" onClick={() => toggleGenre(g)} style={{ cursor: 'pointer' }}>{g} ✕</span>)}
             {activeFilterCount > 0 && (
@@ -278,7 +415,9 @@ export default function CatalogPage() {
         {loading && releases.length === 0 ? (
           <Spinner variant="grid" />
         ) : releases.length === 0 ? (
-          <div className="text-center text-muted py-20 text-sm">Ничего не найдено по выбранным фильтрам</div>
+          <div className="text-center text-muted py-20 text-sm">
+            {query ? `Ничего не найдено по запросу «${query}»` : 'Ничего не найдено по выбранным фильтрам'}
+          </div>
         ) : (
           <>
             <div className="mdk-grid">
@@ -300,7 +439,9 @@ export default function CatalogPage() {
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-5">
-        <h1 className="text-xl font-bold">Каталог</h1>
+        <h1 className="text-xl font-bold">
+          Каталог{query && <span className="text-muted font-normal text-base ml-2">· «{query}»</span>}
+        </h1>
         <button
           onClick={handleSurprise}
           disabled={surpriseBusy}
@@ -311,95 +452,115 @@ export default function CatalogPage() {
         </button>
       </div>
 
-      {/* Category presets */}
-      <div className="flex gap-1.5 mb-4 flex-wrap">
-        {TABS.map((tab, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveTab(i)}
-            className={`tab ${activeTab === i ? 'tab-active' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <form onSubmit={e => { e.preventDefault(); runSearch(queryInput.trim()) }} className="flex gap-2 mb-5 max-w-xl">
+        <div className="relative flex-1">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            value={queryInput}
+            onChange={e => setQueryInput(e.target.value)}
+            placeholder="Название, жанр или студия…"
+            className="input pl-10"
+          />
+        </div>
+        <button type="submit" className="btn-primary">Найти</button>
+        {query && <button type="button" onClick={clearSearch} className="btn-ghost">Сброс</button>}
+      </form>
 
-      {/* Filter bar — compact pills that open popovers */}
-      <div className="flex flex-wrap items-center gap-2 mb-7">
-        <FilterDropdown label="Сортировка" summary={SORTS.find(s => s.value === sort)?.label}
-          open={openSection === 'sort'} onToggle={() => toggleSection('sort')} onClose={() => setOpenSection(null)}>
-          <div className="flex flex-col gap-1">
-            {SORTS.map(s => (
-              <button key={s.value} onClick={() => { setSort(s.value); setOpenSection(null) }}
-                className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                  sort === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'
-                }`}>{s.label}</button>
+      {!query && (
+        <>
+          {/* Category presets */}
+          <div className="flex gap-1.5 mb-4 flex-wrap">
+            {TABS.map((tab, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTab(i)}
+                className={`tab ${activeTab === i ? 'tab-active' : ''}`}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
-        </FilterDropdown>
 
-        <FilterDropdown label="Год" summary={yearFrom || yearTo ? `${yearFrom || '…'}–${yearTo || '…'}` : undefined}
-          open={openSection === 'year'} onToggle={() => toggleSection('year')} onClose={() => setOpenSection(null)}>
-          <div className="flex items-center gap-2">
-            <select value={yearFrom} onChange={e => setYearFrom(e.target.value ? Number(e.target.value) : '')}
-              className="input !py-2 !px-2.5 text-sm flex-1">
-              <option value="">от</option>
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <span className="text-muted">—</span>
-            <select value={yearTo} onChange={e => setYearTo(e.target.value ? Number(e.target.value) : '')}
-              className="input !py-2 !px-2.5 text-sm flex-1">
-              <option value="">до</option>
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+          {/* Filter bar — compact pills that open popovers */}
+          <div className="flex flex-wrap items-center gap-2 mb-7">
+            <FilterDropdown label="Сортировка" summary={SORTS.find(s => s.value === sort)?.label}
+              open={openSection === 'sort'} onToggle={() => toggleSection('sort')} onClose={() => setOpenSection(null)}>
+              <div className="flex flex-col gap-1">
+                {SORTS.map(s => (
+                  <button key={s.value} onClick={() => { setSort(s.value); setOpenSection(null) }}
+                    className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      sort === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'
+                    }`}>{s.label}</button>
+                ))}
+              </div>
+            </FilterDropdown>
+
+            <FilterDropdown label="Год" summary={yearFrom || yearTo ? `${yearFrom || '…'}–${yearTo || '…'}` : undefined}
+              open={openSection === 'year'} onToggle={() => toggleSection('year')} onClose={() => setOpenSection(null)}>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <div className="text-[11px] text-muted mb-1 px-1">От</div>
+                  <YearOptions value={yearFrom} onChange={setYearFrom} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[11px] text-muted mb-1 px-1">До</div>
+                  <YearOptions value={yearTo} onChange={setYearTo} />
+                </div>
+              </div>
+            </FilterDropdown>
+
+            <FilterDropdown label="Статус" summary={STATUSES.find(s => s.value === status)?.label}
+              open={openSection === 'status'} onToggle={() => toggleSection('status')} onClose={() => setOpenSection(null)}>
+              <div className="flex flex-col gap-1">
+                {STATUSES.map(s => (
+                  <button key={s.value} onClick={() => { setStatus(status === s.value ? '' : s.value); setOpenSection(null) }}
+                    className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      status === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'
+                    }`}>{s.label}</button>
+                ))}
+              </div>
+            </FilterDropdown>
+
+            <FilterDropdown label="Студия" summary={studio || undefined}
+              open={openSection === 'studio'} onToggle={() => toggleSection('studio')} onClose={() => setOpenSection(null)}>
+              <form onSubmit={e => { e.preventDefault(); setStudio(studioInput.trim()); setOpenSection(null) }}>
+                <input autoFocus value={studioInput} onChange={e => setStudioInput(e.target.value)}
+                  placeholder="напр. MAPPA" className="input !py-2 !px-2.5 text-sm w-full mb-2" />
+                <div className="flex gap-2">
+                  <button type="submit" className="chip chip-active flex-1">Применить</button>
+                  {studio && <button type="button" onClick={() => { setStudio(''); setStudioInput(''); setOpenSection(null) }} className="chip">Сброс</button>}
+                </div>
+              </form>
+            </FilterDropdown>
+
+            <FilterDropdown label="Жанры" summary={genres.length ? `${genres.length}` : undefined}
+              open={openSection === 'genres'} onToggle={() => toggleSection('genres')} onClose={() => setOpenSection(null)}>
+              <div className="flex gap-1.5 flex-wrap max-h-72 overflow-y-auto">
+                {GENRES.map(g => (
+                  <button key={g} onClick={() => toggleGenre(g)}
+                    className={`chip ${genres.includes(g) ? 'chip-active' : ''}`}>{g}</button>
+                ))}
+              </div>
+            </FilterDropdown>
+
+            {activeFilterCount > 0 && (
+              <button onClick={resetFilters} className="text-sm text-accent-soft hover:underline ml-1">
+                Сбросить ({activeFilterCount})
+              </button>
+            )}
           </div>
-        </FilterDropdown>
-
-        <FilterDropdown label="Статус" summary={STATUSES.find(s => s.value === status)?.label}
-          open={openSection === 'status'} onToggle={() => toggleSection('status')} onClose={() => setOpenSection(null)}>
-          <div className="flex flex-col gap-1">
-            {STATUSES.map(s => (
-              <button key={s.value} onClick={() => { setStatus(status === s.value ? '' : s.value); setOpenSection(null) }}
-                className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                  status === s.value ? 'bg-accent/[0.12] text-accent' : 'text-muted hover:text-text hover:bg-white/[0.04]'
-                }`}>{s.label}</button>
-            ))}
-          </div>
-        </FilterDropdown>
-
-        <FilterDropdown label="Студия" summary={studio || undefined}
-          open={openSection === 'studio'} onToggle={() => toggleSection('studio')} onClose={() => setOpenSection(null)}>
-          <form onSubmit={e => { e.preventDefault(); setStudio(studioInput.trim()); setOpenSection(null) }}>
-            <input autoFocus value={studioInput} onChange={e => setStudioInput(e.target.value)}
-              placeholder="напр. MAPPA" className="input !py-2 !px-2.5 text-sm w-full mb-2" />
-            <div className="flex gap-2">
-              <button type="submit" className="chip chip-active flex-1">Применить</button>
-              {studio && <button type="button" onClick={() => { setStudio(''); setStudioInput(''); setOpenSection(null) }} className="chip">Сброс</button>}
-            </div>
-          </form>
-        </FilterDropdown>
-
-        <FilterDropdown label="Жанры" summary={genres.length ? `${genres.length}` : undefined}
-          open={openSection === 'genres'} onToggle={() => toggleSection('genres')} onClose={() => setOpenSection(null)}>
-          <div className="flex gap-1.5 flex-wrap max-h-72 overflow-y-auto">
-            {GENRES.map(g => (
-              <button key={g} onClick={() => toggleGenre(g)}
-                className={`chip ${genres.includes(g) ? 'chip-active' : ''}`}>{g}</button>
-            ))}
-          </div>
-        </FilterDropdown>
-
-        {activeFilterCount > 0 && (
-          <button onClick={resetFilters} className="text-sm text-accent-soft hover:underline ml-1">
-            Сбросить ({activeFilterCount})
-          </button>
-        )}
-      </div>
+        </>
+      )}
 
       {loading && releases.length === 0 ? (
         <Spinner variant="grid" />
       ) : releases.length === 0 ? (
-        <div className="text-center text-muted py-20 text-sm">Ничего не найдено по выбранным фильтрам</div>
+        <div className="text-center text-muted py-20 text-sm">
+          {query ? `Ничего не найдено по запросу «${query}»` : 'Ничего не найдено по выбранным фильтрам'}
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">

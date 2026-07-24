@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { deleteDiary, listDiary, type DiaryListItem } from '../api/diary'
 import { img } from '../lib/img'
 import Spinner from '../components/Spinner'
@@ -41,7 +41,6 @@ function pluralEntries(n: number): string {
 type RatingFilter = 'all' | 'high' | 'rated'
 
 export default function DiaryPage() {
-  const navigate = useNavigate()
   const design = useDesign()
   const [entries, setEntries] = useState<DiaryListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -172,7 +171,7 @@ export default function DiaryPage() {
                     <button onClick={() => setPendingDelete(null)} className="btn-ghost !py-1 !px-3 text-sm">Нет</button>
                   </div>
                 )}
-                <div className="contents cursor-pointer" onClick={() => navigate(`/release/${e.releaseId}`)}>
+                <Link to={`/release/${e.releaseId}`} className="contents cursor-pointer">
                 <div className="w-14 shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-white/[0.05]">
                   {e.image && (
                     <img src={img(e.image)} alt="" loading="lazy" className="w-full h-full object-cover" />
@@ -194,7 +193,7 @@ export default function DiaryPage() {
                     <p className="text-sm text-text/80 mt-1 whitespace-pre-line line-clamp-6">{e.text}</p>
                   )}
                 </div>
-                </div>
+                </Link>
               </article>
             ))}
           </div>

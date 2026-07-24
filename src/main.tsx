@@ -11,6 +11,11 @@ applyTheme(currentThemeId())
 // До рендера: выкат мог случиться, пока вкладка была открыта.
 installStaleChunkReload()
 
+// Отдаём восстановление прокрутки странице (CatalogPage и т.п.), а не браузеру —
+// иначе нативное восстановление конкурирует с ручным scrollTo и результат
+// становится случайным (то 0, то нужная позиция).
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

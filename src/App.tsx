@@ -12,7 +12,7 @@ import { resumeWatch } from './lib/resume'
 // Hardware back-button (Android). Without this, Capacitor's default closes the
 // app on every back press. We navigate the in-app history instead, and only
 // minimize the app when we're at a top-level page (nothing left to pop).
-const ROOT_PATHS = ['/home', '/browse', '/bookmarks', '/schedule', '/stats', '/search', '/login']
+const ROOT_PATHS = ['/home', '/browse', '/bookmarks', '/schedule', '/stats', '/login']
 function NativeBackButton() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -59,6 +59,13 @@ function WidgetDeepLink() {
   return null
 }
 
+// Search lives inside Catalog now — old /search links (bookmarks, the native
+// app's deep-link handler above) redirect there, keeping any ?q= intact.
+function SearchRedirect() {
+  const location = useLocation()
+  return <Navigate to={`/browse${location.search}`} replace />
+}
+
 // Route-level code splitting: each page ships as its own chunk, loaded on demand
 // (kept tiny by gzip + immutable caching), so the initial bundle stays small.
 const HomePage = lazy(() => import('./pages/HomePage'))
@@ -66,7 +73,6 @@ const CatalogPage = lazy(() => import('./pages/CatalogPage'))
 const SchedulePage = lazy(() => import('./pages/SchedulePage'))
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage'))
 const GalleryPage = lazy(() => import('./pages/GalleryPage'))
-const SearchPage = lazy(() => import('./pages/SearchPage'))
 const ReleasePage = lazy(() => import('./pages/ReleasePage'))
 const WatchPage = lazy(() => import('./pages/WatchPage'))
 const PlayerPage = lazy(() => import('./pages/PlayerPage'))
@@ -134,7 +140,7 @@ export default function App() {
           <Route path="home" element={<HomePage />} />
           <Route path="browse" element={<CatalogPage />} />
           <Route path="schedule" element={<SchedulePage />} />
-          <Route path="search" element={<SearchPage />} />
+          <Route path="search" element={<SearchRedirect />} />
           <Route path="achievements" element={<AchievementsPage />} />
           <Route path="gallery" element={<GalleryPage />} />
           <Route path="release/:id" element={<ReleasePage />} />

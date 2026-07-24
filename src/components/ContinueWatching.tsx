@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   listWatchProgress, removeWatchProgress, saveWatchProgress,
   getAccountContinueWatching, deleteAccountHistory, type WatchProgressEntry,
@@ -134,11 +134,13 @@ export default function ContinueWatching() {
           const sec = secMap.get(entry.releaseId)
           const secPct = sec ? watchedPct(sec.position, sec.duration) : 0
           return (
-          <button
+          <Link
             key={entry.releaseId}
-            onClick={() => navigate(`/release/${entry.releaseId}`)}
-            disabled={busy === entry.releaseId}
-            className="group relative shrink-0 w-24 sm:w-28 snap-start text-left focus:outline-none disabled:opacity-60"
+            to={`/release/${entry.releaseId}`}
+            onClick={(e) => { if (busy === entry.releaseId) e.preventDefault() }}
+            className={`group relative shrink-0 w-24 sm:w-28 snap-start text-left focus:outline-none ${
+              busy === entry.releaseId ? 'opacity-60 pointer-events-none' : ''
+            }`}
           >
             <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-surface border border-white/[0.06]
                             transition-all duration-200 group-hover:border-accent/40">
@@ -200,7 +202,7 @@ export default function ContinueWatching() {
               </span>
             </div>
             <p className="mt-1.5 text-[11px] text-text/85 line-clamp-1 leading-snug">{entry.releaseTitle || 'Без названия'}</p>
-          </button>
+          </Link>
           )
         })}
       </div>

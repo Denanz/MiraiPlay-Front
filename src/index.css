@@ -5,14 +5,14 @@
 :root {
   color-scheme: dark;
   /* Accent palette — overridden at runtime by the theme picker (lib/theme.ts) */
-  --accent-rgb: 167 139 250;
-  --accent-soft-rgb: 196 165 253;
-  --accent-dim-rgb: 109 79 158;
+  --accent-rgb: 204 117 250;
+  --accent-soft-rgb: 222 169 250;
+  --accent-dim-rgb: 118 50 154;
   /* Тона аврора-подложки. Вынесены в переменные, чтобы страница тайтла могла
      подкрасить фон под постер: раньше они были зашиты и спорили с акцентом. */
-  --aurora-a-rgb: 124 58 237;
-  --aurora-b-rgb: 219 39 119;
-  --aurora-c-rgb: 14 165 183;
+  --aurora-a-rgb: 167 33 237;
+  --aurora-b-rgb: 46 65 234;
+  --aurora-c-rgb: 51 177 230;
 }
 
 html, body {
@@ -131,17 +131,33 @@ h1, h2, h3, .font-display {
 .md-aurora b:nth-child(3){width:420px;height:420px;background:rgb(var(--aurora-c-rgb));opacity:.18;top:34%;right:-120px;transition:background .45s}
 
 .md-rail{position:fixed;top:0;left:0;bottom:0;width:236px;z-index:30;padding:22px 14px;display:flex;flex-direction:column;gap:4px;
-  background:linear-gradient(180deg,rgba(18,14,28,.74),rgba(10,8,18,.74));backdrop-filter:blur(22px);border-right:1px solid rgba(255,255,255,.09)}
-.md-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;padding:6px 10px 16px;color:#fff}
-.md-brand .dot{width:11px;height:11px;border-radius:50%;background:rgb(var(--accent-soft-rgb));box-shadow:0 0 16px rgb(var(--accent-soft-rgb))}
+  background:linear-gradient(180deg,rgba(18,14,28,.74),rgba(10,8,18,.74));backdrop-filter:blur(22px);border-right:1px solid rgba(255,255,255,.09);
+  transition:width .18s ease,padding .18s ease}
+.md-brand-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 10px 16px 6px}
+.md-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;color:#fff;min-width:0}
+.md-brand .mark{width:26px;height:26px;flex-shrink:0;filter:drop-shadow(0 0 10px rgb(var(--accent-soft-rgb)/0.5))}
+.md-rail-toggle{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:9px;
+  background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);border:0;cursor:pointer;transition:.15s}
+.md-rail-toggle:hover{color:#fff;background:rgba(255,255,255,.09)}
+.md-rail-toggle svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
 .md-rail a{position:relative;display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;color:rgba(255,255,255,.55);font-size:14.5px;font-weight:500;transition:.15s}
 .md-rail a svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;flex-shrink:0}
 .md-rail a:hover{color:#fff;background:rgba(255,255,255,.05)}
 .md-rail a.on{color:rgb(var(--accent-soft-rgb));background:linear-gradient(90deg,rgb(var(--accent-rgb)/0.16),transparent)}
 .md-rail a.on::before{content:"";position:absolute;left:0;width:3px;height:22px;border-radius:0 3px 3px 0;background:rgb(var(--accent-soft-rgb))}
 .md-rail .grow{flex:1}
+.md-rail .lbl{white-space:nowrap;overflow:hidden}
 
-.md-main{position:relative;z-index:1;margin-left:236px;min-height:100vh}
+/* Свёрнутая панель — как в YouTube: только лого и иконки, подписи и текст бренда скрыты. */
+.md-rail.collapsed{width:76px;padding-left:10px;padding-right:10px}
+.md-rail.collapsed ~ .md-main{margin-left:76px}
+.md-rail.collapsed .md-brand-row{flex-direction:column;gap:10px;padding:6px 0 16px}
+.md-rail.collapsed .md-brand .lbl{display:none}
+.md-rail.collapsed a{justify-content:center;padding-left:0;padding-right:0}
+.md-rail.collapsed a .lbl{display:none}
+.md-rail.collapsed a.on::before{display:none}
+
+.md-main{position:relative;z-index:1;margin-left:236px;min-height:100vh;transition:margin-left .18s ease}
 .md-inner{max-width:1400px;margin:0 auto;padding:34px 40px 90px}
 
 .md-bottom{display:none}

@@ -202,3 +202,12 @@ export async function startImport(dryRun: boolean): Promise<boolean> {
     return false
   }
 }
+
+export async function sendFeedback(type: 'bug' | 'idea', message: string, page?: string): Promise<boolean> {
+  try {
+    await api.post('/api/v1/feedback', { type, message, page })
+    return true
+  } catch {
+    return false
+  }
+}

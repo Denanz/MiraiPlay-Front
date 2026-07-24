@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getEpisodeTarget, saveWatchProgress } from '../api/episodes'
+import { isPlayableUrl } from '../lib/playableHost'
 import { getRelease, buildRecommendations, type Release } from '../api/releases'
 import { img } from '../lib/img'
 import { WatchRoom, type WtContent } from '../api/together'
@@ -47,6 +48,7 @@ async function resolveContent(c: WtContent): Promise<PlayerState> {
     if (!raw) throw new Error('Эпизод недоступен')
     kodikUrl = raw.startsWith('//') ? `https:${raw}` : raw
   }
+  if (!isPlayableUrl(kodikUrl)) throw new Error('Источник не поддерживается плеером')
   return {
     kodikUrl, releaseId: c.releaseId, sourceId: c.sourceId, position: c.position,
     episodeName: c.episodeName || `Эпизод ${c.position}`, releaseName: c.releaseName,
@@ -282,6 +284,7 @@ export default function PlayerPage() {
       const rawUrl = data.episode?.url || ''
       if (!rawUrl) { setNextError(msg?.missing ?? 'Серия недоступна'); return }
       const kodikUrl = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl
+      if (!isPlayableUrl(kodikUrl)) { setNextError('Источник не поддерживается плеером'); return }
       const nextState: PlayerState = {
         ...state, kodikUrl, position: pos, sourceId, dubberName,
         episodeName: data.episode?.name || `Эпизод ${pos}`,

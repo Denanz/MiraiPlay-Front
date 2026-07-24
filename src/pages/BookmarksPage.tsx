@@ -1,20 +1,67 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getHistory, getFavorites, getProfileList, extractBookmarkRelease } from '../api/bookmarks'
 import type { BookmarkItem } from '../api/bookmarks'
 import ReleaseCard from '../components/ReleaseCard'
 import Spinner from '../components/Spinner'
 import type { Release } from '../api/releases'
-import { hasGrade } from '../api/releases'
 import { useDesign } from '../lib/design'
+import { getWatchProgress } from '../api/episodes'
+import { img } from '../lib/img'
+import { getMyRating, loadMyRatings, subscribeMyRatings } from '../lib/myRatings'
+import { getShikiScore, requestShikiScore, subscribeShikiScores } from '../lib/shikiScores'
 
+// "Рейтинг" сортирует по оценке Shikimori — она у нас на плитках и есть у
+// большинства тайтлов, в отличие от оценки Anixart, которую мы почти нигде не
+// показываем. "Моя оценка" — по личной десятибалльной, отдельно от общей.
 const SORTS = [
   { label: 'По умолчанию', value: 'default' },
   { label: 'Название', value: 'title' },
   { label: 'Год', value: 'year' },
   { label: 'Рейтинг', value: 'grade' },
+  { label: 'Моя оценка', value: 'my' },
 ] as const
 type SortKey = typeof SORTS[number]['value']
+type ViewMode = 'grid' | 'list'
+
+function BookmarkRow({ r }: { r: Release }) {
+  const [myRating, setMyRating] = useState(() => getMyRating(r.id))
+  const orig = r.title_original || ''
+  const [shiki, setShiki] = useState(() => getShikiScore(orig))
+  useEffect(() => {
+    const off1 = subscribeMyRatings(() => setMyRating(getMyRating(r.id)))
+    const off2 = subscribeShikiScores(() => setShiki(getShikiScore(orig)))
+    return () => { off1(); off2() }
+  }, [r.id, orig])
+  const progress = useMemo(() => getWatchProgress(r.id), [r.id])
+  const poster = img(r.image || '')
+
+  return (
+    <Link
+      to={`/release/${r.id}`}
+      className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.05] transition-colors text-left"
+    >
+      <div className="w-11 h-[62px] rounded-lg overflow-hidden bg-surface flex-shrink-0 border border-white/[0.06]">
+        {poster && <img src={poster} alt="" className="w-full h-full object-cover" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium truncate">{r.title_ru}</div>
+        <div className="text-xs text-muted truncate mt-0.5">
+          {r.year || ''}
+          {progress && <span className="text-accent-soft"> · Серия {progress.episodePosition}</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {shiki > 0 && (
+          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-black/40 text-accent-soft">★{shiki.toFixed(2)}</span>
+        )}
+        {myRating > 0 && (
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-accent text-black">{myRating}/10</span>
+        )}
+      </div>
+    </Link>
+  )
+}
 
 const TABS = [
   { label: 'История', loader: (page: number) => getHistory(page) },
@@ -40,6 +87,22 @@ export default function BookmarksPage() {
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<SortKey>('default')
+  const [view, setView] = useState<ViewMode>(() => (localStorage.getItem('bookmarks_view') as ViewMode) || 'grid')
+  useEffect(() => { localStorage.setItem('bookmarks_view', view) }, [view])
+
+  // Личные оценки приходят одним запросом на всю сессию; оценки Shikimori —
+  // пакетом по названиям. Оба кеша живут вне React, поэтому дёргаем ререндер
+  // по подписке, когда данные для сортировки наконец доехали.
+  const [ratingsTick, bumpRatings] = useState(0)
+  useEffect(() => {
+    const off1 = subscribeMyRatings(() => bumpRatings(n => n + 1))
+    const off2 = subscribeShikiScores(() => bumpRatings(n => n + 1))
+    void loadMyRatings()
+    return () => { off1(); off2() }
+  }, [])
+  useEffect(() => {
+    for (const r of items) requestShikiScore(r.title_original)
+  }, [items])
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -50,14 +113,14 @@ export default function BookmarksPage() {
       list = [...list].sort((a, b) => {
         if (sort === 'title') return (a.title_ru || '').localeCompare(b.title_ru || '')
         if (sort === 'year') return Number(b.year || 0) - Number(a.year || 0)
-        // Unrated titles carry a placeholder grade (e.g. 5.00 with 0 votes) —
-        // treat them as 0 so they sink below genuinely-rated titles instead of
-        // sorting as if they had a real ~5.0 community score.
-        return (hasGrade(b) ? b.grade! : 0) - (hasGrade(a) ? a.grade! : 0)
+        if (sort === 'my') return getMyRating(b.id) - getMyRating(a.id)
+        // Рейтинг — по Shikimori, не по Anixart: своей оценки у нас почти нигде не
+        // показывается, а десятибалльная Shikimori есть у подавляющего большинства.
+        return getShikiScore(b.title_original) - getShikiScore(a.title_original)
       })
     }
     return list
-  }, [items, query, sort])
+  }, [items, query, sort, ratingsTick])
 
   // React to ?tab= changes even when already mounted on this route — including
   // browser back/forward landing back on the bare (no ?tab=) URL, which must
@@ -131,6 +194,12 @@ export default function BookmarksPage() {
                   className={`mdk-chip ${sort === s.value ? 'mdk-chip-acc' : ''}`}>{s.label}</button>
               ))}
             </div>
+            <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+              <button onClick={() => setView('grid')} title="Сеткой"
+                className={`mdk-chip ${view === 'grid' ? 'mdk-chip-acc' : ''}`}>▦</button>
+              <button onClick={() => setView('list')} title="Списком"
+                className={`mdk-chip ${view === 'list' ? 'mdk-chip-acc' : ''}`}>≡</button>
+            </div>
           </div>
         )}
 
@@ -140,6 +209,10 @@ export default function BookmarksPage() {
           <div className="text-center text-muted py-20 text-sm">Список пуст</div>
         ) : visible.length === 0 ? (
           <div className="text-center text-muted py-20 text-sm">Ничего не найдено</div>
+        ) : view === 'list' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {visible.map(r => <BookmarkRow key={r.id} r={r} />)}
+          </div>
         ) : (
           <div className="mdk-grid">
             {visible.map(r => <ReleaseCard key={r.id} release={r} />)}
@@ -183,6 +256,12 @@ export default function BookmarksPage() {
                 className={`chip ${sort === s.value ? 'chip-active' : ''}`}>{s.label}</button>
             ))}
           </div>
+          <div className="flex gap-1.5 ml-auto">
+            <button onClick={() => setView('grid')} title="Сеткой"
+              className={`chip ${view === 'grid' ? 'chip-active' : ''}`}>▦</button>
+            <button onClick={() => setView('list')} title="Списком"
+              className={`chip ${view === 'list' ? 'chip-active' : ''}`}>≡</button>
+          </div>
         </div>
       )}
 
@@ -192,6 +271,10 @@ export default function BookmarksPage() {
         <div className="text-center text-muted py-20 text-sm">Список пуст</div>
       ) : visible.length === 0 ? (
         <div className="text-center text-muted py-20 text-sm">Ничего не найдено</div>
+      ) : view === 'list' ? (
+        <div className="flex flex-col gap-0.5">
+          {visible.map(r => <BookmarkRow key={r.id} r={r} />)}
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
           {visible.map(r => (

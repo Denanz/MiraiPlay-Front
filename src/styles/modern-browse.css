@@ -40,3 +40,19 @@
 }
 .mdp-browse-sep { width: 1px; height: 20px; background: rgba(255, 255, 255, 0.09); margin: 0 4px; }
 .mdp-browse-genrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 26px; }
+
+/* Compact search field, inline in the filter pill row — the old standalone
+   /search page had its own oversized .mdp-search-bar; this sits at filter-chip height. */
+.mdp-browse-search {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
+  border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+  flex: 1 1 220px; max-width: 360px;
+}
+.mdp-browse-search svg { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: #9b92ad; stroke-width: 1.8; }
+.mdp-browse-search input {
+  flex: 1; min-width: 0; background: transparent; border: 0; color: #f5f0ff; font-size: 14px;
+  font-family: inherit; outline: 0;
+}
+.mdp-browse-search input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.mdp-browse-search button { flex-shrink: 0; color: #9b92ad; background: none; border: 0; cursor: pointer; font-size: 14px; }
+.mdp-browse-search button:hover { color: #f5f0ff; }

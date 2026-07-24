@@ -38,11 +38,8 @@ export default function LoginPage() {
                       rounded-full bg-accent/10 blur-[120px]" />
 
       <div className="w-full max-w-sm relative">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <span className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_12px_rgb(var(--accent-rgb)/0.8)]" />
-          <h1 className="font-display text-2xl font-bold tracking-tight">
-            Mirai<span className="text-accent">Hub</span>
-          </h1>
+        <div className="flex items-center justify-center mb-8">
+          <img src="/brand-wordmark.png" alt="MiraiHub" className="h-10 w-auto" />
         </div>
 
         <div className="panel p-7">
