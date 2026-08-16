@@ -32,6 +32,9 @@ interface PlayerState {
   titleOriginal?: string
   /** Выбранная команда AnimeLib — источник вместо kodikUrl. */
   animelibTeam?: string
+  /** Реальный Anixart-источник для отметки "просмотрено" на аккаунте — у
+   *  AnimeLib-плейбека sourceId:-1 не существует в системе Anixart. */
+  markWatchedSourceId?: number
 }
 
 const API_BASE = 'https://aniapi.denanz.fun'
@@ -110,6 +113,12 @@ export default function PlayerPage() {
   const roomRef = useRef<WatchRoom | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const lastPbRef = useRef<{ time: number; paused: boolean } | null>(null)
+  // Guards resolveContent against out-of-order responses: if the host (or a
+  // guest applying 'content'/'joined') fires off a second resolve before the
+  // first one settles, only the result matching the latest request actually
+  // gets applied — an earlier one landing later would otherwise briefly show
+  // the wrong episode.
+  const contentRequestIdRef = useRef(0)
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [role, setRole] = useState<'host' | 'guest' | null>(null)
   const [peers, setPeers] = useState(0)
@@ -138,6 +147,7 @@ export default function PlayerPage() {
     if (state.animelibTeam) params.set('animelibTeam', state.animelibTeam)
     else params.set('url', state.kodikUrl!)
     if (state.titleOriginal) params.set('origTitle', state.titleOriginal)
+    if (state.markWatchedSourceId) params.set('markSourceId', String(state.markWatchedSourceId))
     const token = localStorage.getItem('anixart_token')
     if (token) params.set('token', token)
     const uid = localStorage.getItem('anixart_user_id')
@@ -176,11 +186,13 @@ export default function PlayerPage() {
     const q = queueRef.current
     if (index < 0 || index >= q.length) return
     const item = q[index]
+    const requestId = ++contentRequestIdRef.current
     try {
       const next = await resolveContent(item)
+      if (requestId !== contentRequestIdRef.current) return
       pushQueue(q.filter((_, i) => i !== index))
       setState(next) // host content useEffect re-sends content to guests
-    } catch { setRoomMsg('Не удалось включить из очереди') }
+    } catch { if (requestId === contentRequestIdRef.current) setRoomMsg('Не удалось включить из очереди') }
   }, [pushQueue])
 
   // Show the finale "more like this" card when the last episode ends (solo only).
@@ -213,9 +225,6 @@ export default function PlayerPage() {
       if (d.__wt === 'state' && roomRef.current?.role === 'host') {
         roomRef.current.sendPlayback({ time: Number(d.time) || 0, paused: !!d.paused })
       }
-      if (d.__wt === 'control' && roomRef.current?.role === 'guest') {
-        roomRef.current.sendControl({ time: Number(d.time) || 0, paused: !!d.paused })
-      }
       if (d.__wt === 'ended') endTriggerRef.current()
       if (d.__wt === 'ended' && roomRef.current?.role === 'host' && queueRef.current.length > 0) {
         playFromQueue(0)
@@ -238,21 +247,37 @@ export default function PlayerPage() {
       setRole('guest'); setRoomMsg('Подключено. Ждём хоста…')
       setQueue(data.queue || [])
       if (data.content) {
-        try { setState(await resolveContent(data.content)); setRoomMsg('') }
-        catch { setRoomMsg('Не удалось загрузить серию') }
+        const requestId = ++contentRequestIdRef.current
+        try {
+          const next = await resolveContent(data.content)
+          if (requestId !== contentRequestIdRef.current) return
+          setState(next); setRoomMsg('')
+        } catch { if (requestId === contentRequestIdRef.current) setRoomMsg('Не удалось загрузить серию') }
       }
     },
     onContent: async (c: WtContent) => {
-      try { setState(await resolveContent(c)); setRoomMsg('') }
-      catch { setRoomMsg('Не удалось загрузить серию') }
+      const requestId = ++contentRequestIdRef.current
+      try {
+        const next = await resolveContent(c)
+        if (requestId !== contentRequestIdRef.current) return
+        setState(next); setRoomMsg('')
+      } catch { if (requestId === contentRequestIdRef.current) setRoomMsg('Не удалось загрузить серию') }
     },
-    onPlayback: (pb: { time: number; paused: boolean }) => {
-      lastPbRef.current = pb
-      iframeRef.current?.contentWindow?.postMessage({ __wt: 'apply', ...pb }, API_BASE)
+    onPlayback: (pb: { time: number; paused: boolean; at?: number }) => {
+      // Compensate for however long this message took to arrive — applying
+      // `time` as-is has a guest permanently landing behind by that amount,
+      // which is what produced the "lags, then snaps forward" pattern.
+      const elapsedMs = roomRef.current?.estimateElapsedMs(pb.at) ?? 0
+      const adjusted = { time: pb.paused ? pb.time : pb.time + elapsedMs / 1000, paused: pb.paused }
+      lastPbRef.current = adjusted
+      iframeRef.current?.contentWindow?.postMessage({ __wt: 'apply', ...adjusted }, API_BASE)
     },
     onQueue: (q: WtContent[]) => setQueue(q),
     onPeers: (count: number) => setPeers(count),
     onHostLeft: () => setRoomMsg('Хост вышел — комната закрыта'),
+    onReconnecting: () => setRoomMsg('Переподключение…'),
+    onReconnected: () => setRoomMsg(''),
+    onReconnectFailed: () => setRoomMsg('Не удалось переподключиться — перезайди в комнату'),
     onError: (err: string) => {
       setJoining(false)
       setRoomMsg(err === 'no_room' ? 'Комната не найдена' : err === 'room_full' ? 'Комната заполнена' : 'Ошибка соединения')

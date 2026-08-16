@@ -289,6 +289,14 @@ export default function WatchPage() {
           sourceName: ANIMELIB_SOURCE.name,
           totalEpisodes: animelibEpisodeCount,
           titleOriginal: release?.title_original,
+          // sourceId:-1 isn't a real Anixart source, so it can't be used to
+          // mark the episode watched on the account (Anixart's endpoint 404s
+          // on an id it's never heard of). Any real source for this release
+          // works for that call — Anixart doesn't care which one reported it,
+          // only that the episode was watched — so this rides along as a
+          // stand-in just for that upstream call, while progress/resume still
+          // track under the real -1 sourceId (see /player/progress).
+          markWatchedSourceId: sources[0]?.id,
         },
       })
       return

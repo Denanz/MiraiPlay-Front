@@ -84,6 +84,7 @@ const WrappedPage = lazy(() => import('./pages/WrappedPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
+const DesignPreviewV5 = lazy(() => import('./pages/DesignPreviewV5'))
 
 function RouteFallback() {
   return (
@@ -135,6 +136,8 @@ export default function App() {
         {/* Player is full-screen (no app navbar) — kept outside Layout so its
             own header/overlay isn't trapped under the navbar's stacking context */}
         <Route path="/player" element={<PrivateRoute><PlayerPage /></PrivateRoute>} />
+        {/* Прототип #5 — своя вёрстка, без Layout/навбара сайта. Не в навигации, не коммитим. */}
+        <Route path="/design-preview-v5" element={<PrivateRoute><DesignPreviewV5 /></PrivateRoute>} />
 <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<HomePage />} />

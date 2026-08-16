@@ -11,13 +11,18 @@
 .mdp-gallery-folder-cap .t { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mdp-gallery-folder-cap .s { font-size: 12px; color: #9b92ad; margin-top: 3px; }
 
-/* Modern-mode Gallery: masonry screenshot wall (prototype gallery.html) */
-.mdp-gallery-masonry { columns: 4; column-gap: 16px; }
-@media (max-width: 1100px) { .mdp-gallery-masonry { columns: 3; } }
-@media (max-width: 700px) { .mdp-gallery-masonry { columns: 2; } }
+/* Modern-mode Gallery: screenshot wall. A real grid, not CSS `columns` —
+   multi-column layout fills each column top-to-bottom before moving to the
+   next, so newest-first data (see screenshots.ts's saveShot) read out of
+   order visually (down column 1 first, then down column 2, ...) even though
+   the underlying array order was already correct. Grid flows left-to-right,
+   row by row, matching the array order the way it reads. */
+.mdp-gallery-masonry { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 1100px) { .mdp-gallery-masonry { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .mdp-gallery-masonry { grid-template-columns: repeat(2, 1fr); } }
 
 .mdp-gallery-shot {
-  break-inside: avoid; margin-bottom: 16px; border-radius: 14px; overflow: hidden;
+  border-radius: 14px; overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.09); position: relative; cursor: pointer;
   background: rgba(255, 255, 255, 0.03); display: block; width: 100%; text-align: left;
 }
