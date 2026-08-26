@@ -7,6 +7,7 @@ function token(): string {
 export interface AnimelibStatus {
   connected: boolean
   expiresAt: number | null
+  autoRenew?: boolean
 }
 
 export async function getAnimelibStatus(): Promise<AnimelibStatus> {
@@ -19,11 +20,14 @@ export async function getAnimelibStatus(): Promise<AnimelibStatus> {
   }
 }
 
-export async function saveAnimelibToken(animelibToken: string): Promise<{ ok: boolean; expiresAt?: number }> {
+export async function saveAnimelibToken(
+  animelibToken: string,
+  animelibRefreshToken?: string,
+): Promise<{ ok: boolean; expiresAt?: number; autoRenew?: boolean }> {
   try {
-    const { data } = await api.post<{ ok: boolean; expiresAt?: number }>(
+    const { data } = await api.post<{ ok: boolean; expiresAt?: number; autoRenew?: boolean }>(
       '/api/v1/animelib/token',
-      { animelibToken, token: token() },
+      { animelibToken, animelibRefreshToken, token: token() },
     )
     return data ?? { ok: false }
   } catch {
