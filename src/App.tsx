@@ -6,8 +6,6 @@ import { useAuth } from './store/auth'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import UpdatePrompt from './components/UpdatePrompt'
-import { listWatchProgress } from './api/episodes'
-import { resumeWatch } from './lib/resume'
 
 // Hardware back-button (Android). Without this, Capacitor's default closes the
 // app on every back press. We navigate the in-app history instead, and only
@@ -29,35 +27,6 @@ function NativeBackButton() {
   return null
 }
 
-// Home-screen widget tap-through (Android). Widgets deep-link back into the app
-// via the custom scheme (fun.denanz.anime://<target>?...) already scaffolded by
-// Capacitor (@string/custom_url_scheme) — see android widgets under
-// android/app/src/main/java/fun/denanz/anime/widgets/.
-function WidgetDeepLink() {
-  const navigate = useNavigate()
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return
-    let handle: { remove: () => void } | undefined
-    CapacitorApp.addListener('appUrlOpen', ({ url }) => {
-      let parsed: URL
-      try { parsed = new URL(url) } catch { return }
-      const target = parsed.hostname || parsed.pathname.replace(/^\/+/, '')
-      if (target === 'resume') {
-        const releaseId = parsed.searchParams.get('releaseId')
-        const entry = releaseId ? listWatchProgress().find((e) => e.releaseId === releaseId) : null
-        if (entry) resumeWatch(navigate, entry)
-        else if (releaseId) navigate(`/watch/${releaseId}`)
-      } else if (target === 'release') {
-        const releaseId = parsed.searchParams.get('releaseId')
-        if (releaseId) navigate(`/release/${releaseId}`)
-      } else if (target === 'schedule') navigate('/schedule')
-      else if (target === 'stats') navigate('/stats')
-      else if (target === 'gallery') navigate('/gallery')
-    }).then((h) => { handle = h })
-    return () => { handle?.remove() }
-  }, [navigate])
-  return null
-}
 
 // Search lives inside Catalog now — old /search links (bookmarks, the native
 // app's deep-link handler above) redirect there, keeping any ?q= intact.
@@ -126,7 +95,6 @@ export default function App() {
   return (
     <ErrorBoundary>
       <NativeBackButton />
-      <WidgetDeepLink />
       <UpdatePrompt />
       <Suspense fallback={<RouteFallback />}>
       <Routes>

@@ -41,51 +41,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
-
-        <!-- Home-screen widgets — see android/app/src/main/java/fun/denanz/anime/widgets/ -->
-        <receiver
-            android:name=".widgets.ContinueWatchingWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_continue_watching_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widgets.ScheduleWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_schedule_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widgets.StatsWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_stats_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widgets.ScreenshotWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_screenshot_info" />
-        </receiver>
     </application>
 
     <!-- Permissions -->

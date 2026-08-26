@@ -9,7 +9,6 @@ import { useDesign } from '../lib/design'
 import { useAuth } from '../store/auth'
 import { img } from '../lib/img'
 import Img from '../components/Img'
-import { syncWidget } from '../lib/widgetSync'
 import '../styles/modern-schedule.css'
 
 /** Все id из списков «Смотрю» и «В планах» — для фильтра «только мои» в расписании. */
@@ -68,22 +67,6 @@ export default function SchedulePage() {
   const filterMine = (items: Release[]): Release[] =>
     onlyMine && myIds ? items.filter(r => myIds.has(r.id)) : items
 
-  // Push today's airing titles to the "Расписание · сегодня" home-screen widget.
-  useEffect(() => {
-    if (!schedule) return
-    const items = schedule[today].slice(0, 4)
-    const images: Record<string, string> = {}
-    for (const r of items) if (r.image) images[`schedule_${r.id}`] = img(r.image)
-    syncWidget('schedule', {
-      items: items.map((r) => ({
-        releaseId: r.id,
-        title: r.title_ru,
-        sub: r.episodes_released != null
-          ? `Эп. ${r.episodes_released}${r.episodes_total ? ` / ${r.episodes_total}` : ''}`
-          : '',
-      })),
-    }, images)
-  }, [schedule, today])
 
   // ── Seasons ──
   const [season, setSeason] = useState(currentSeason())

@@ -8,7 +8,6 @@ import { getRelease } from '../api/releases'
 import { getContinueWatching, watchedPct, fmtTime } from '../api/progress'
 import { resumeWatch } from '../lib/resume'
 import { img } from '../lib/img'
-import { syncWidget } from '../lib/widgetSync'
 
 export default function ContinueWatching() {
   const navigate = useNavigate()
@@ -76,27 +75,6 @@ export default function ContinueWatching() {
     return () => { cancelled = true }
   }, [])
 
-  // Push the top 3 to the "Продолжить смотреть" home-screen widget — best-effort,
-  // no-op outside the Android app. See src/lib/widgetSync.ts.
-  useEffect(() => {
-    const top = items.slice(0, 3)
-    const images: Record<string, string> = {}
-    for (const entry of top) if (entry.releaseImage) images[`continue_${entry.releaseId}`] = img(entry.releaseImage)
-    syncWidget('continue', {
-      items: top.map((entry) => {
-        const sec = secMap.get(entry.releaseId)
-        const pct = sec ? watchedPct(sec.position, sec.duration)
-          : entry.episodesTotal ? Math.min(100, (entry.episodePosition / entry.episodesTotal) * 100) : 0
-        return {
-          releaseId: entry.releaseId,
-          title: entry.releaseTitle || '',
-          episodePosition: entry.episodePosition,
-          episodesTotal: entry.episodesTotal ?? 0,
-          pct: Math.round(pct),
-        }
-      }),
-    }, images)
-  }, [items, secMap])
 
   if (items.length === 0) return null
 

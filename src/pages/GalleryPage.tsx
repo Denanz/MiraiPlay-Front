@@ -3,7 +3,6 @@ import { useAuth } from '../store/auth'
 import { listScreenshots, deleteScreenshot, saveScreenshotNote, shotFileUrl, type ShotMeta } from '../api/screenshots'
 import Spinner from '../components/Spinner'
 import { useDesign } from '../lib/design'
-import { syncWidget } from '../lib/widgetSync'
 import '../styles/modern-gallery.css'
 
 const ALL_KEY = '__all__'
@@ -54,23 +53,6 @@ export default function GalleryPage() {
       .catch(() => setError('Не удалось загрузить галерею'))
   }, [session])
 
-  // Push a pool of recent shots to the "Свежий скриншот" widget — it picks a
-  // random one from these each time it refreshes (native side, see
-  // ScreenshotWidgetProvider), so the tile rotates on its own over time.
-  useEffect(() => {
-    if (!items || items.length === 0) return
-    const pool = [...items].sort((a, b) => b.createdAt - a.createdAt).slice(0, 12)
-    const images: Record<string, string> = {}
-    for (const s of pool) images[`screenshot_${s.id}`] = shotFileUrl(bucket, s.id)
-    syncWidget('screenshot', {
-      items: pool.map((s) => ({
-        id: s.id,
-        releaseId: s.releaseId || '',
-        title: s.title || 'Кадр',
-        sub: [s.episode ? `эп. ${s.episode}` : '', fmtTime(s.time)].filter(Boolean).join(' · '),
-      })),
-    }, images)
-  }, [items, bucket])
 
   // Group by release (falls back to title text, then an "untitled" bucket) —
   // releaseId is the stable key since two different releases could in theory

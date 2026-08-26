@@ -6,7 +6,6 @@ import { useAuth } from '../store/auth'
 import { useDesign } from '../lib/design'
 import Spinner from '../components/Spinner'
 import ShikimoriDigest from '../components/ShikimoriDigest'
-import { syncWidget } from '../lib/widgetSync'
 import '../styles/modern-stats.css'
 
 // Anixart reports watched_time in MINUTES (~23.5/episode).
@@ -63,14 +62,6 @@ export default function StatsPage() {
       .finally(() => setLoading(false))
   }, [session])
 
-  // Push streak + headline episode count to the "Стрик" home-screen widget.
-  useEffect(() => {
-    if (!profile) return
-    syncWidget('stats', {
-      streak: computeStreak(profile.watch_dynamics || []),
-      episodes: profile.watched_episode_count ?? 0,
-    })
-  }, [profile])
 
   if (loading) return <Spinner variant="grid" />
   if (error || !profile) {
