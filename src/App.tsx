@@ -87,7 +87,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: string |
 }
 
 function PrivateRoute({ children }: { children: ReactNode }) {
-  const { session } = useAuth()
+  const { session, bootstrapping } = useAuth()
+  // Пока идёт автовход по аккаунту Mirai, редиректить на логин нельзя.
+  if (bootstrapping) return <RouteFallback />
   return session ? <>{children}</> : <Navigate to="/login" replace />
 }
 

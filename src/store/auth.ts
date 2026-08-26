@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { fetchMiraiSession } from '../api/miraiLink'
 
 interface Session {
   token: string
@@ -8,6 +9,10 @@ interface Session {
 
 interface AuthContextValue {
   session: Session | null
+  // Идёт ли ещё попытка автовхода по аккаунту Mirai. Пока идёт, экран логина
+  // показывать нельзя — иначе привязанный пользователь будет видеть его вспышку
+  // на каждой загрузке.
+  bootstrapping: boolean
   login: (token: string, userId: number, userLogin: string) => void
   logout: () => void
 }
@@ -26,6 +31,7 @@ function getStoredSession(): Session | null {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(getStoredSession)
+  const [bootstrapping, setBootstrapping] = useState(() => getStoredSession() === null)
 
   const login = useCallback((token: string, userId: number, userLogin: string) => {
     localStorage.setItem('anixart_token', token)
@@ -41,9 +47,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null)
   }, [])
 
+  // Автовход: если своей сессии нет, но аккаунт Mirai привязан — заходим без
+  // экрана логина. Разово при старте; выход руками сюда не возвращает, иначе
+  // «Выйти» немедленно логинило бы обратно.
+  useEffect(() => {
+    if (!bootstrapping) return
+    let cancelled = false
+    fetchMiraiSession()
+      .then((s) => { if (!cancelled && s) login(s.token, s.userId, s.login) })
+      .finally(() => { if (!cancelled) setBootstrapping(false) })
+    return () => { cancelled = true }
+  }, [])
+
   return React.createElement(
     AuthContext.Provider,
-    { value: { session, login, logout } },
+    { value: { session, bootstrapping, login, logout } },
     children
   )
 }

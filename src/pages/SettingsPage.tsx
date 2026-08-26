@@ -3,6 +3,7 @@ import { useAuth } from '../store/auth'
 import ThemePicker from '../components/ThemePicker'
 import DesignPicker from '../components/DesignPicker'
 import ListBackup from '../components/ListBackup'
+import MiraiLinkSettings from '../components/MiraiLinkSettings'
 import NotifySettings from '../components/NotifySettings'
 import ShikimoriSettings from '../components/ShikimoriSettings'
 import ShikimoriMigrate from '../components/ShikimoriMigrate'
@@ -20,6 +21,7 @@ export default function SettingsPage() {
       <h1 className="text-xl font-bold">Настройки</h1>
       <DesignPicker />
       <ThemePicker />
+      {session && <MiraiLinkSettings />}
       {session && <NotifySettings />}
       {session && <ShikimoriSettings />}
       {session && <ShikimoriMigrate />}

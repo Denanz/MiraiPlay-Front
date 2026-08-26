@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, FormEvent } from 'react'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { signIn } from '../api/auth'
 import { useAuth } from '../store/auth'
 
@@ -8,8 +8,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { session, bootstrapping, login } = useAuth()
   const navigate = useNavigate()
+
+  // Автовход мог сработать, пока страница уже открыта — тогда форма здесь ни к
+  // чему.
+  useEffect(() => {
+    if (session) navigate('/home', { replace: true })
+  }, [session, navigate])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -31,6 +37,9 @@ export default function LoginPage() {
     }
   }
 
+
+  if (bootstrapping) return null
+  if (session) return <Navigate to="/home" replace />
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4 relative overflow-hidden">
       {/* ambient glow */}
