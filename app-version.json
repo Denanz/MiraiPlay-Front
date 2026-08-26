@@ -1,7 +1,7 @@
 {
   "url": "https://anime.denanz.fun/mirai.apk",
   "mandatory": false,
-  "versionCode": 56,
-  "versionName": "2.20.1",
-  "notes": "Переименование в MiraiPlay"
+  "versionCode": 59,
+  "versionName": "2.23",
+  "notes": "В настройках появилась привязка к аккаунту Mirai: привязал — и MiraiPlay открывается сразу, без входа по Anixart. Привязка добровольная: без неё всё работает ровно как раньше, вход по логину Anixart никуда не делся."
 }
