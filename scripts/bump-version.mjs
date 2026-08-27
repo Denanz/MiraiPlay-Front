@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-// Bumps android/app/build.gradle (versionCode +1, versionName per the project's rule:
-// patch bump for fix-only releases, minor bump for anything adding a new feature)
-// and prepends a matching entry to src/lib/changelog.ts.
+// Поднимает версию в build.gradle (versionCode всегда +1, versionName по правилу
+// проекта: patch за исправления, minor за новое) и дописывает запись в changelog.ts.
 //
-// Usage: node scripts/bump-version.mjs <patch|minor> "changelog line" ["another line" ...]
+// Запуск: node scripts/bump-version.mjs <patch|minor> "строка" ["ещё строка" ...]
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -56,7 +55,7 @@ writeFileSync(gradlePath, gradle)
 
 const changelogPath = join(root, 'src/lib/changelog.ts')
 let changelog = readFileSync(changelogPath, 'utf8')
-// Single-quoted to match the rest of the file's style.
+// В одинарных кавычках, как и остальной файл.
 const quote = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 const entryLines = notes.map((n) => `      ${quote(n)},`).join('\n')
 const introLine = intro ? `    intro: ${quote(intro)},\n` : ''

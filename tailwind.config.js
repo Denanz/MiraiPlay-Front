@@ -26,9 +26,9 @@ export default {
         'accent-glow': '0 0 0 1px rgb(var(--accent-rgb) / 0.5), 0 8px 40px -8px rgb(var(--accent-rgb) / 0.45)',
       },
       keyframes: {
-        // Opacity-only — must NOT use transform here: this animates the page
-        // wrapper, and a transform would make it the containing block for any
-        // position:fixed descendants (breaking the fullscreen player/backdrops).
+        // Только прозрачность, никаких transform: анимируется обёртка страницы,
+        // а transform сделал бы её точкой отсчёта для position:fixed внутри и
+        // сломал полноэкранный плеер.
         fade: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },

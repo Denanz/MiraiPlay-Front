@@ -1,4 +1,4 @@
-// MiraiHub service worker — app-shell caching.
+// Service worker: кэширование оболочки приложения.
 const CACHE = 'miraihub-v12'
 const SHELL = ['/', '/index.html', '/icon.svg', '/manifest.webmanifest']
 
@@ -19,10 +19,10 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return
 
   const url = new URL(req.url)
-  // Never cache API or cross-origin (player, kodik, shikimori) requests
+  // Запросы к API и на чужие домены не кэшируем никогда
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
-  // SPA navigations: network-first, fall back to cached shell when offline
+  // Переходы по страницам: сначала сеть, без неё — оболочка из кэша
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).catch(() => caches.match('/index.html').then((r) => r || caches.match('/'))),
@@ -30,7 +30,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets (hashed JS/CSS, icon): cache-first, then network + store
+  // Статика с хэшем в имени: сначала кэш, иначе сеть и сохранить
   event.respondWith(
     caches.match(req).then((cached) => cached || fetch(req).then((res) => {
       if (res.ok) {
