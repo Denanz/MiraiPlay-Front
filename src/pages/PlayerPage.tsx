@@ -11,7 +11,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 import { ScreenOrientation } from '@capacitor/screen-orientation'
 import { useDesign } from '../lib/design'
 
-// Native plugin (Android): hide the system bars only while the player is open.
+// Нативный плагин: прячет системные панели, пока открыт плеер.
 const Immersive = registerPlugin<{ enable: () => Promise<void>; disable: () => Promise<void> }>('Immersive')
 
 interface PlayerState {
@@ -51,10 +51,8 @@ function contentOf(s: PlayerState): WtContent {
 }
 
 async function resolveContent(c: WtContent): Promise<PlayerState> {
-  // AnimeLib source: no url to resolve up front — the /player route resolves
-  // it server-side (needs the viewer's own AnimeLib token, which a Watch
-  // Together guest may not share with the host, so this can't be pre-resolved
-  // and handed over like the Kodik path below does).
+  // У AnimeLib нечего резолвить заранее: это делает /player на сервере, ему нужен
+  // личный токен зрителя. Передать готовую ссылку гостю, как в случае Kodik, нельзя.
   if (c.animelibTeam) {
     return {
       releaseId: c.releaseId, sourceId: c.sourceId, position: c.position,
@@ -63,7 +61,7 @@ async function resolveContent(c: WtContent): Promise<PlayerState> {
       titleOriginal: c.titleOriginal, animelibTeam: c.animelibTeam,
     }
   }
-  // Prefer the host-resolved stream url (no token needed → guests don't need login)
+  // Предпочитаем ссылку, отданную хостом: для неё не нужен токен, гостю не надо входить
   let kodikUrl = c.kodikUrl || ''
   if (!kodikUrl) {
     const data = await getEpisodeTarget(c.releaseId, c.sourceId, c.position)
@@ -85,20 +83,20 @@ export default function PlayerPage() {
   const navigate = useNavigate()
   const params = useParams()
   const [searchParams] = useSearchParams()
-  // Guests can arrive via the public /room/:code link (no login) or ?room=CODE
+  // Гость приходит либо по публичной ссылке /room/:code, либо через ?room=CODE
   const roomParam = params.code || searchParams.get('room')
   const design = useDesign()
 
   const [state, setState] = useState<PlayerState | null>(location.state as PlayerState | null)
-  // Finale "more like this" card (shown when the last episode ends, solo only).
+  // Карточка «похожее» после финала — только при одиночном просмотре.
   const [endCard, setEndCard] = useState<Release[] | null>(null)
   const [endTitle, setEndTitle] = useState('')
   const endTriggerRef = useRef<() => void>(() => {})
   const [loadingNext, setLoadingNext] = useState(false)
   const [nextError, setNextError] = useState('')
 
-  // In the native app, force landscape for the whole player screen (the in-WebView
-  // screen.orientation.lock from the iframe doesn't work reliably on Android).
+  // В приложении держим горизонталь на весь экран плеера: вызов из iframe на
+  // Android срабатывает через раз.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {})
@@ -113,11 +111,8 @@ export default function PlayerPage() {
   const roomRef = useRef<WatchRoom | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const lastPbRef = useRef<{ time: number; paused: boolean } | null>(null)
-  // Guards resolveContent against out-of-order responses: if the host (or a
-  // guest applying 'content'/'joined') fires off a second resolve before the
-  // first one settles, only the result matching the latest request actually
-  // gets applied — an earlier one landing later would otherwise briefly show
-  // the wrong episode.
+  // Защита от ответов, пришедших не по порядку: применяем только результат
+  // последнего запроса, иначе отставший показал бы не ту серию.
   const contentRequestIdRef = useRef(0)
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [role, setRole] = useState<'host' | 'guest' | null>(null)
@@ -155,7 +150,7 @@ export default function PlayerPage() {
     return `${API_BASE}/api/v1/player?${params}`
   }, [state, design])
 
-  // Tell the iframe its role + replay last known playback (for late-loading guests)
+  // Сообщаем iframe его роль и последнее состояние — для поздно подключившихся
   const primeIframe = useCallback(() => {
     const win = iframeRef.current?.contentWindow
     if (!win) return
@@ -165,7 +160,7 @@ export default function PlayerPage() {
     }
   }, [])
 
-  // Push nav/room meta into the iframe so it can enable prev/next and reflect room state.
+  // Отдаём в iframe состояние комнаты и соседних серий.
   const postMeta = useCallback(() => {
     const win = iframeRef.current?.contentWindow
     if (!win || !state) return
@@ -175,7 +170,7 @@ export default function PlayerPage() {
   }, [state, role, roomCode, peers])
   useEffect(() => { postMeta() }, [postMeta])
 
-  // ── Queue mutators (host is source of truth; broadcast whole queue) ──
+  // ── Правки очереди: истина у хоста, рассылаем её целиком ──
   const pushQueue = useCallback((q: WtContent[]) => {
     setQueue(q)
     roomRef.current?.sendQueue(q)
@@ -195,7 +190,7 @@ export default function PlayerPage() {
     } catch { if (requestId === contentRequestIdRef.current) setRoomMsg('Не удалось включить из очереди') }
   }, [pushQueue])
 
-  // Show the finale "more like this" card when the last episode ends (solo only).
+  // Показываем «похожее» после последней серии, только вне комнаты.
   endTriggerRef.current = () => {
     if (!state || roomCode) return
     const isFinale = state.totalEpisodes != null && state.position >= state.totalEpisodes
@@ -210,10 +205,10 @@ export default function PlayerPage() {
       } catch { /* keep the empty card */ }
     })()
   }
-  // Reset the card whenever a new episode loads.
+  // Сбрасываем карточку при загрузке новой серии.
   useEffect(() => { setEndCard(null) }, [state?.releaseId, state?.position])
 
-  // ── postMessage bridge with the player iframe ──
+  // ── Мост postMessage с iframe плеера ──
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (e.origin !== API_BASE) return
@@ -234,7 +229,7 @@ export default function PlayerPage() {
     return () => window.removeEventListener('message', onMsg)
   }, [primeIframe, playFromQueue, postMeta])
 
-  // Host: push content whenever the episode changes
+  // Хост рассылает содержимое при каждой смене серии
   useEffect(() => {
     if (role === 'host' && state && roomRef.current) {
       roomRef.current.sendContent(contentOf(state))
@@ -264,9 +259,8 @@ export default function PlayerPage() {
       } catch { if (requestId === contentRequestIdRef.current) setRoomMsg('Не удалось загрузить серию') }
     },
     onPlayback: (pb: { time: number; paused: boolean; at?: number }) => {
-      // Compensate for however long this message took to arrive — applying
-      // `time` as-is has a guest permanently landing behind by that amount,
-      // which is what produced the "lags, then snaps forward" pattern.
+      // Компенсируем время доставки сообщения: без этого гость стабильно
+      // отстаёт ровно на него.
       const elapsedMs = roomRef.current?.estimateElapsedMs(pb.at) ?? 0
       const adjusted = { time: pb.paused ? pb.time : pb.time + elapsedMs / 1000, paused: pb.paused }
       lastPbRef.current = adjusted
@@ -285,7 +279,7 @@ export default function PlayerPage() {
     onClose: () => { /* keep UI; reconnection is manual */ },
   }), [])
 
-  // Guest auto-join from ?room=CODE
+  // Автовход гостя по ?room=CODE
   useEffect(() => {
     if (!roomParam || roomRef.current) return
     setJoining(true)
@@ -328,8 +322,7 @@ export default function PlayerPage() {
     try {
       let nextState: PlayerState
       if (state.animelibTeam) {
-        // AnimeLib source: no url to pre-fetch — /player resolves this specific
-        // team+episode server-side on load, same as the very first navigation.
+        // У AnimeLib ссылки заранее нет: /player сам резолвит команду и серию.
         nextState = {
           ...state, position: pos,
           episodeName: `Эпизод ${pos}`,
@@ -375,7 +368,7 @@ export default function PlayerPage() {
     })
   }
 
-  // Toggle screen orientation from the in-player rotate button (native only).
+  // Поворот экрана кнопкой в плеере, только в приложении.
   const orientRef = useRef<'landscape' | 'portrait'>('landscape')
   const toggleOrientation = () => {
     if (!Capacitor.isNativePlatform()) return
@@ -384,7 +377,7 @@ export default function PlayerPage() {
     ScreenOrientation.lock({ orientation: next }).catch(() => {})
   }
 
-  // In-player intents (Back / Prev / Next / Together / Queue / Rotate) from the iframe.
+  // Намерения из плеера: назад, соседние серии, комната, очередь, поворот.
   // Смена озвучки происходит ВНУТРИ iframe и намеренно не идёт через setState:
   // playerUrl содержит sourceId, а у iframe key={playerUrl} — любое изменение
   // состояния перемонтировало бы его и сбросило воспроизведение, ради чего всё
@@ -417,14 +410,14 @@ export default function PlayerPage() {
     }
   }
 
-  // Auto-clear transient episode-load errors.
+  // Сами убираем разовые ошибки загрузки серии.
   useEffect(() => {
     if (!nextError) return
     const t = window.setTimeout(() => setNextError(''), 2600)
     return () => window.clearTimeout(t)
   }, [nextError])
 
-  // Guest waiting for content (no playable state yet)
+  // Гость ждёт содержимое, играть пока нечего
   if (!state || !playerUrl) {
     if (roomParam) {
       return (
@@ -444,8 +437,7 @@ export default function PlayerPage() {
     )
   }
 
-  // Immersive: no external chrome — all controls live inside the player iframe,
-  // which posts Back/Prev/Next/Together/Queue intents back to us (see actionRef).
+  // Снаружи никакой обвязки: все кнопки внутри iframe, а наружу он шлёт намерения.
   return (
     <div className="fixed inset-0 z-50 bg-black">
       {/* transient status: room connection + episode-nav errors (bar is gone) */}
@@ -467,7 +459,7 @@ export default function PlayerPage() {
             onClose={() => setShowQueue(false)}
           />
         ) : (
-          // Guests: read-only queue view
+          // Гостю очередь показывается только на чтение
           <div className="fixed inset-0 z-[60] flex justify-end bg-black/60 backdrop-blur-sm" onClick={() => setShowQueue(false)}>
             <div className="w-full max-w-md h-full bg-[#0e0b16] border-l border-white/10 flex flex-col" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">

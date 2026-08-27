@@ -39,7 +39,7 @@ export async function disconnectAnimelib(): Promise<void> {
   try {
     await api.post('/api/v1/animelib/disconnect', { token: token() })
   } catch {
-    // best-effort
+    // не критично, если не выйдет
   }
 }
 
@@ -47,9 +47,8 @@ export interface AnimelibTeamsResult {
   found: boolean
   reason?: 'no_token' | 'title_not_found' | 'episode_not_found' | 'no_native_source'
   teams?: string[]
-  // AnimeLib's own real episode numbers — not Anixart's episode count. A
-  // split-cour title can have Anixart running continuous numbering while
-  // AnimeLib carries each part as a separate title starting over at 1.
+  // Настоящие номера серий AnimeLib, а не количество из Anixart: у split-cour
+  // тайтлов Anixart нумерует сквозняком, а AnimeLib держит части отдельно.
   episodeNumbers?: string[]
 }
 
@@ -74,10 +73,8 @@ export async function getAnimelibTeams(
   }
 }
 
-// Manual releaseId -> AnimeLib anime_id pin — fallback for whatever the
-// (authenticated) search on the backend still gets wrong. Accepts either a
-// bare id or a pasted animelib.org URL/slug (e.g. "24321--tensei-..."); the
-// leading digits are what gets sent.
+// Ручной пин releaseId → anime_id на случай, когда поиск ошибся. Принимает и
+// голый id, и ссылку на animelib.org — отправляются ведущие цифры.
 export async function setAnimelibOverride(releaseId: string, animeIdOrUrl: string): Promise<boolean> {
   const match = animeIdOrUrl.match(/(\d+)/)
   const animeId = match ? Number(match[1]) : NaN

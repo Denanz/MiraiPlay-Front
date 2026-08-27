@@ -1,6 +1,6 @@
-// Watch Together — client for the host-authoritative sync rooms.
-// The React app owns this socket; the player <iframe> exchanges playback ticks
-// with React via postMessage (see PlayerPage).
+// Watch Together — клиент комнат синхронного просмотра.
+// Сокетом владеет React, а iframe плеера обменивается с ним состоянием через
+// postMessage.
 
 const PROXY_KEY = 'd3ffb0843f89eedefe80efec1dda7a2b97fa9645934a3ce4'
 const WS_URL = `wss://aniapi.denanz.fun:8444/api/v1/together?key=${PROXY_KEY}`
@@ -18,11 +18,8 @@ export interface WtContent {
   titleOriginal?: string
   animelibTeam?: string
 }
-// `at` — server clock at the moment this was recorded. Needed to correct for
-// however long the message has been in flight before a guest applies it
-// (see WatchRoom.estimateElapsedMs) — applying `time` as-is has the guest
-// permanently landing behind by however much the message took to arrive,
-// which is exactly the "lags a couple seconds then snaps forward" pattern.
+// `at` — серверные часы на момент записи состояния. Нужны, чтобы учесть время
+// доставки: без поправки гость стабильно отстаёт ровно на него.
 export interface WtPlayback { time: number; paused: boolean; at?: number }
 
 export interface WtHandlers {
@@ -36,8 +33,8 @@ export interface WtHandlers {
   onError?: (error: string) => void
   onClose?: () => void
   onOpen?: () => void
-  // Connection recovery — distinct from onClose/onOpen so the UI can show
-  // "переподключаюсь…" instead of just going silent (see the file header).
+  // Восстановление связи. Отдельно от onClose/onOpen, чтобы интерфейс показал
+  // «переподключаюсь…», а не молчал.
   onReconnecting?: (attempt: number) => void
   onReconnected?: () => void
   onReconnectFailed?: () => void
@@ -56,8 +53,8 @@ export class WatchRoom {
   private reconnectAttempt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private syncTimer: ReturnType<typeof setInterval> | null = null
-  // Estimated (serverNow - clientNow) and one-way network latency, refined
-  // every SYNC_INTERVAL_MS via the 'sync' echo — same idea as an NTP offset.
+  // Оценка смещения часов и задержки в одну сторону, уточняется эхом 'sync' —
+  // та же идея, что у NTP.
   private clockOffsetMs = 0
   private latencyMs = 100
 
@@ -83,9 +80,8 @@ export class WatchRoom {
     this.clockOffsetMs = st - ct - this.latencyMs
   }
 
-  /** How many ms have elapsed (in server time) since a playback state with
-   *  server-timestamp `at` was recorded — 0 if `at` is missing (older/local
-   *  state) so callers degrade to today's exact-time behavior. */
+  /** Сколько миллисекунд прошло по серверным часам с момента `at`. Если `at`
+   *  нет, отдаём 0 — вызывающий тогда работает как раньше. */
   estimateElapsedMs(at?: number): number {
     if (!at) return 0
     const serverNow = Date.now() + this.clockOffsetMs
@@ -116,9 +112,8 @@ export class WatchRoom {
         case 'created': {
           this.code = String(m.room); this.role = 'host'
           if (typeof m.hostToken === 'string') this.hostToken = m.hostToken
-          // The server marks a successful 'rejoin_host' with resumed:true —
-          // a fresh 'create' never sets it, so this alone tells creation and
-          // reconnection apart without tracking our own attempt count here.
+          // Сервер помечает удачный 'rejoin_host' полем resumed:true, а свежий
+          // 'create' его не ставит — по нему и отличаем создание от возврата.
           if (m.resumed) this.handlers.onReconnected?.()
           else this.handlers.onCreated?.(this.code)
           break

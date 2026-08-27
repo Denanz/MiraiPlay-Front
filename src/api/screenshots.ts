@@ -13,7 +13,7 @@ export interface ShotMeta {
   ext: string
 }
 
-// Bucket is an opaque, unguessable id derived from the token on the server.
+// Bucket — непрозрачный неугадываемый адрес, вычисляемый на сервере.
 export function shotFileUrl(bucket: string, id: string): string {
   return `${BASE}/api/v1/player/screenshots/file/${bucket}/${id}`
 }

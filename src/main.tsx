@@ -26,7 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 
-// Register the PWA service worker (production build only)
+// Регистрируем service worker PWA, только в боевой сборке
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => { /* ignore */ })

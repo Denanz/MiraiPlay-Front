@@ -28,14 +28,14 @@ export default function GalleryPage() {
   const [bucket, setBucket] = useState('')
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState<ShotMeta | null>(null)
-  // Note editor: the screenshot being annotated + the draft text + saving flag.
+  // Редактор заметки: какой кадр правим, черновик текста и флаг сохранения.
   const [noteFor, setNoteFor] = useState<ShotMeta | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [noteSaving, setNoteSaving] = useState(false)
-  // Folder browsing: null = overview grid of titles, ALL_KEY = flat view of everything.
+  // Просмотр папок: null — обзор по тайтлам, ALL_KEY — всё подряд.
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [folderQuery, setFolderQuery] = useState('')
-  // Filters within a folder — reset whenever a different folder is opened.
+  // Фильтры внутри папки, сбрасываются при переходе в другую.
   const [epFilter, setEpFilter] = useState<number | ''>('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -54,9 +54,8 @@ export default function GalleryPage() {
   }, [session])
 
 
-  // Group by release (falls back to title text, then an "untitled" bucket) —
-  // releaseId is the stable key since two different releases could in theory
-  // share the same title text (remakes/rebroadcasts).
+  // Группируем по релизу: releaseId — устойчивый ключ, а одинаковые названия
+  // могут быть у разных релизов, например у ремейков.
   const folders = useMemo<Folder[]>(() => {
     if (!items) return []
     const map = new Map<string, Folder>()

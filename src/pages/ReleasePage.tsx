@@ -28,7 +28,7 @@ import { setMyRatingLocal } from '../lib/myRatings'
 import { useDesign } from '../lib/design'
 import '../styles/modern-release.css'
 
-// Horizontal row of real Anixart releases (clickable → /release/:id)
+// Горизонтальный ряд настоящих релизов, кликабельных на /release/:id
 function NativeRow({ title, items }: { title: string; items: Release[] }) {
   return (
     <div className="mt-8">
@@ -86,8 +86,8 @@ function stripRelatedAnimeFromNote(note?: string) {
     .trim()
 }
 
-// Sanitize third-party (Anixart) note HTML with DOMPurify — defends against
-// stored XSS from release notes rendered via dangerouslySetInnerHTML.
+// Чистим чужой HTML примечаний через DOMPurify: он рисуется
+// dangerouslySetInnerHTML, и без этого туда пролезет XSS.
 function sanitizeNoteHtml(html?: string) {
   if (!html) return ''
   const clean = DOMPurify.sanitize(html, {
@@ -95,7 +95,7 @@ function sanitizeNoteHtml(html?: string) {
     ALLOWED_ATTR: ['href', 'target', 'rel'],
     ALLOWED_URI_REGEXP: /^https?:\/\//i,
   })
-  // Force safe link behaviour
+  // Принудительно делаем ссылки безопасными
   return clean.replace(/<a /gi, '<a target="_blank" rel="noreferrer noopener" ')
 }
 
@@ -176,9 +176,9 @@ export default function ReleasePage() {
   const [relatedFull, setRelatedFull] = useState<Release[]>([])
   const [recommended, setRecommended] = useState<Release[]>([])
   const [resuming, setResuming] = useState(false)
-  // Cross-device last-watched episode (Anixart account history + local fallback).
+  // Последняя серия из истории аккаунта, с локальным запасным вариантом.
   const [watchProgress, setWatchProgress] = useState<WatchProgressEntry | null>(null)
-  // Personal diary: review text + private 1–10 score (stored on the gateway).
+  // Личный дневник: текст отзыва и своя оценка 1–10, хранятся у нас.
   const [diaryText, setDiaryText] = useState('')
   const [diaryRating, setDiaryRating] = useState(0)
   const [diarySaving, setDiarySaving] = useState(false)
@@ -204,7 +204,7 @@ export default function ReleasePage() {
         }
       })
       .finally(() => { if (!cancelled) setLoading(false) })
-    // Personal 1–10 rating lives on our own server, not Anixart.
+    // Личная оценка 1–10 живёт на нашем сервере, не в Anixart.
     getMyRating(Number(id)).then(v => { if (!cancelled) setMyVote(v) }).catch(() => {})
     return () => { cancelled = true }
   }, [id])
@@ -262,13 +262,13 @@ export default function ReleasePage() {
       }
     })
 
-    // Same "more like this" recommendations shown at the end of a finale.
+    // Те же рекомендации «похожее», что показываются после финала.
     setRecommended([])
     buildRecommendations(release)
       .then(items => { if (!cancelled) setRecommended(items) })
       .catch(() => { /* falls back to "Похожее аниме" */ })
 
-    // Full franchise list (release.related_releases is only a 3-item preview)
+    // Полный список франшизы: в карточке лежит только превью из трёх
     setRelatedFull([])
     if (release.related?.id) {
       getRelatedReleases(release.related.id)
@@ -281,8 +281,8 @@ export default function ReleasePage() {
     }
   }, [release])
 
-  // Populate the "Продолжить" button from the cross-device source (account
-  // history), seeding the local value instantly so it doesn't flash.
+  // Заполняем кнопку «Продолжить» из истории аккаунта, общей для устройств
+  // локальное значение подставляем сразу, чтобы не мигало.
   useEffect(() => {
     if (!release) return
     setWatchProgress(getWatchProgress(release.id))
@@ -291,7 +291,7 @@ export default function ReleasePage() {
     return () => { cancelled = true }
   }, [release])
 
-  // Load the personal diary entry for this release.
+  // Подтягиваем запись дневника по релизу.
   useEffect(() => {
     if (!release) return
     let cancelled = false
@@ -322,7 +322,7 @@ export default function ReleasePage() {
     }
   }
 
-  // Resume straight into the player instead of the episode-selection screen
+  // Продолжаем сразу в плеере, минуя экран выбора серии
   const handleContinue = async (progress: NonNullable<ReturnType<typeof getWatchProgress>>) => {
     if (!release) return
     setResuming(true)

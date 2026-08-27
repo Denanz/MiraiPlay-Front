@@ -14,10 +14,10 @@ export default function ContinueWatching() {
   const [items, setItems] = useState<WatchProgressEntry[]>(() => listWatchProgress())
   const [fromAccount, setFromAccount] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
-  // releaseId → exact within-episode position (seconds), from the MiraiHub gateway.
+  // releaseId → точная позиция внутри серии в секундах.
   const [secMap, setSecMap] = useState<Map<string, { position: number; duration: number }>>(new Map())
 
-  // Prefer the Anixart account history (cross-device); fall back to localStorage.
+  // Предпочитаем историю аккаунта, localStorage — запасной вариант.
   useEffect(() => {
     let cancelled = false
     const loggedIn = !!localStorage.getItem('anixart_token')
@@ -60,14 +60,14 @@ export default function ContinueWatching() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Fine-grained within-episode position (seconds) for the progress overlay.
+  // Точная позиция внутри серии для полоски прогресса.
   useEffect(() => {
     let cancelled = false
     getContinueWatching().then((list) => {
       if (cancelled) return
       const map = new Map<string, { position: number; duration: number }>()
       for (const it of list) {
-        // List is newest-first; keep the most recent entry per release.
+        // Список свежими вперёд: по каждому релизу оставляем самую позднюю запись.
         if (!map.has(it.releaseId)) map.set(it.releaseId, { position: it.position, duration: it.duration })
       }
       setSecMap(map)

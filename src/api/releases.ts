@@ -3,9 +3,8 @@ import { api } from './client'
 const SHIKIMORI_API = 'https://shikimori.io/api'
 const SHIKIMORI_GRAPHQL = 'https://shikimori.io/api/graphql'
 
-// Anixart returns a placeholder grade (e.g. 5.00) even for titles with zero votes,
-// so `grade > 0` alone isn't enough to tell "has a real community rating" apart from
-// "unrated" — vote_count must also be positive.
+// Anixart отдаёт оценку-заглушку даже у тайтлов без голосов, поэтому одного
+// `grade > 0` мало — нужен ещё положительный vote_count.
 export function hasGrade(release: Pick<Release, 'grade' | 'vote_count'>): boolean {
   return release.grade !== undefined && release.grade > 0 && (release.vote_count ?? 0) > 0
 }
@@ -21,8 +20,8 @@ export interface Release {
   year?: number | string
   genres?: string
   studio?: string
-  // The flat status_id field Anixart returns is always 0 (dead/unused) — the
-  // real release status lives in this nested object instead.
+  // Плоское поле status_id всегда 0 и не используется — настоящий статус лежит
+  // во вложенном объекте.
   status_id?: number
   status?: { id: number; name: string }
   description?: string
@@ -36,12 +35,12 @@ export interface Release {
   episodes_released?: number
   episodes_total?: number
   related_anime?: LinkedAnime[]
-  // Shikimori enrichment (added by the MiraiHub gateway)
+  // Дополнения от Shikimori, их подставляет шлюз
   trailer?: { url: string; image?: string | null; name?: string | null }
   watch_order?: WatchOrderNode[]
   your_vote?: number
   vote_count?: number
-  // Native Anixart relations (real, clickable releases) + official frames
+  // Родные связи Anixart — кликабельные релизы — и официальные кадры
   related_releases?: Release[]
   recommended_releases?: Release[]
   screenshot_images?: string[]
@@ -49,7 +48,7 @@ export interface Release {
   related_count?: number
 }
 
-// Anixart voting (1–5). GET endpoints, like the native app.
+// Голосование Anixart, 1–5. Через GET, как в нативном приложении.
 export async function voteRelease(releaseId: number, vote: number) {
   const res = await api.get(`/api/v1/release/vote/add/${releaseId}/${vote}`)
   return res.data
@@ -60,8 +59,8 @@ export async function unvoteRelease(releaseId: number) {
   return res.data
 }
 
-// Personal 1–10 rating, stored on our own server (MiraiHub) only — independent
-// of Anixart's 5-star community vote. Requires a logged-in token.
+// Личная оценка 1–10, живёт только на нашем сервере и с пятизвёздочной оценкой
+// Anixart никак не связана.
 export async function getMyRating(releaseId: number): Promise<number> {
   try {
     const res = await api.get<{ rating: number | null }>('/api/v1/release/rating', {
@@ -113,8 +112,8 @@ export interface ReleasesResponse {
   release?: Release
 }
 
-// Full franchise/related list (paginated) — the inline release.related_releases
-// is only a partial preview. Uses the related-group id from release.related.id.
+// Полный список франшизы с пагинацией: related_releases в карточке — только
+// превью.
 export async function getRelatedReleases(groupId: number, maxPages = 6): Promise<Release[]> {
   const out: Release[] = []
   for (let pg = 0; pg < maxPages; pg++) {
@@ -133,9 +132,8 @@ export function extractReleases(data: ReleasesResponse): Release[] {
   return data.releases || []
 }
 
-// The "more like this" list shown when a finale ends and on the release card:
-// the release's own curated recommendations, topped up with same-genre releases
-// (sorted by rating) when that curated list is thin (< 4 items).
+// Список «похожее» после финала и в карточке: собственные рекомендации релиза,
+// добитые тайтлами того же жанра по рейтингу, если своих меньше четырёх.
 export async function buildRecommendations(release: Release, limit = 18): Promise<Release[]> {
   let items: Release[] = release.recommended_releases || release.related_releases || []
   if (items.length < 4) {
@@ -286,7 +284,7 @@ async function searchShikimoriLinks(
         break
       }
     } catch {
-      // ignore
+      // молча пропускаем
     }
   }
 

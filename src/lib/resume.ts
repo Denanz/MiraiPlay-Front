@@ -2,8 +2,8 @@ import type { NavigateFunction } from 'react-router-dom'
 import { getEpisodeTarget, saveWatchProgress, type WatchProgressEntry } from '../api/episodes'
 import { isPlayableUrl } from './playableHost'
 
-// Resolve the saved episode's stream and jump straight into the player.
-// Falls back to the episode-selection screen if the link can't be obtained.
+// Достаём поток сохранённой серии и уходим сразу в плеер. Если ссылку получить
+// не вышло, показываем экран выбора серии.
 export async function resumeWatch(navigate: NavigateFunction, entry: WatchProgressEntry) {
   const releaseId = String(entry.releaseId)
   if (!entry.sourceId) {

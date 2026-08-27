@@ -1,5 +1,4 @@
-// Accent colour schemes. Each is an [accent, accent-soft, accent-dim] RGB triple
-// applied as CSS variables (see index.css / tailwind.config.js).
+// Наборы акцентных цветов. Каждый — тройка RGB, которая уезжает в CSS-переменные.
 export interface Theme { id: string; name: string; rgb: [string, string, string] }
 
 // 'purple' и 'blue' — точные оттенки из градиента логотипа (не универсальный
@@ -19,7 +18,7 @@ export const THEMES: Theme[] = [
 
 const KEY = 'miraihub_theme'
 
-// One-time migration from the old brand key so saved themes aren't lost.
+// Разовый перенос со старого ключа, чтобы не потерять выбранную тему.
 try {
   const old = localStorage.getItem('anixartex_theme')
   if (old && !localStorage.getItem(KEY)) localStorage.setItem(KEY, old)
@@ -33,7 +32,7 @@ export function applyTheme(id: string) {
   s.setProperty('--accent-soft-rgb', t.rgb[1])
   s.setProperty('--accent-dim-rgb', t.rgb[2])
   localStorage.setItem(KEY, t.id)
-  // Mirror to flat keys read by the pre-paint inline script (no flash on reload)
+  // Дублируем в плоские ключи для инлайн-скрипта, который красит до отрисовки
   localStorage.setItem('th_accent', t.rgb[0])
   localStorage.setItem('th_accent-soft', t.rgb[1])
   localStorage.setItem('th_accent-dim', t.rgb[2])

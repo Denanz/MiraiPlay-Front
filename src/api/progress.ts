@@ -1,9 +1,8 @@
 import { api } from './client'
 
-// Fine-grained, cross-device watch position served by the MiraiHub gateway
-// (bucketed by the gateway token). Unlike the Anixart account history — which is
-// episode-level — this carries the exact second within an episode, so we can
-// resume at the right spot and draw a within-episode progress bar.
+// Точная позиция просмотра, общая для устройств. История аккаунта знает только
+// номер серии, а здесь есть секунда внутри неё — из неё и продолжение, и полоска
+// досмотренного.
 export interface ContinueItem {
   releaseId: string
   sourceId: string
@@ -28,7 +27,7 @@ export async function getContinueWatching(): Promise<ContinueItem[]> {
   }
 }
 
-// Within-episode completion percentage (0–100). Returns 0 when duration unknown.
+// Процент досмотренного внутри серии. Ноль, если длительность неизвестна.
 export function watchedPct(position: number, duration: number): number {
   if (!duration || duration <= 0) return 0
   return Math.min(100, Math.max(0, (position / duration) * 100))

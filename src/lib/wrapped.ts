@@ -39,7 +39,7 @@ function topTally(map: Map<string, number>, limit = 8): Tally[] {
     .slice(0, limit)
 }
 
-// Pull the full account history (paginated) and aggregate all-time taste data.
+// Тянем всю историю аккаунта постранично и собираем вкусы за всё время.
 export async function computeWrapped(maxPages = 30): Promise<WrappedStats> {
   const all: HistoryRelease[] = []
   for (let page = 0; page < maxPages; page++) {

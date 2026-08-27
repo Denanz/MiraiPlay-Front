@@ -8,7 +8,7 @@ import Spinner from '../components/Spinner'
 import ShikimoriDigest from '../components/ShikimoriDigest'
 import '../styles/modern-stats.css'
 
-// Anixart reports watched_time in MINUTES (~23.5/episode).
+// watched_time приходит в минутах, примерно 23.5 на серию.
 function formatWatchTime(minutes?: number): string {
   if (!minutes || minutes <= 0) return '0 ч'
   const days = Math.floor(minutes / (60 * 24))
@@ -26,7 +26,7 @@ function formatDate(ts?: number): string {
   return new Date(ts * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// Current streak: consecutive most-recent days (by timestamp) with activity.
+// Текущая серия: сколько последних дней подряд была активность.
 function computeStreak(points: { count: number; timestamp: number }[]): number {
   const sorted = [...points].sort((a, b) => b.timestamp - a.timestamp)
   let streak = 0
@@ -40,7 +40,7 @@ function computeStreak(points: { count: number; timestamp: number }[]): number {
 function heatColor(count: number, max: number): string {
   if (count <= 0) return 'rgba(255,255,255,0.05)'
   const t = Math.min(1, count / Math.max(1, max))
-  // violet ramp
+  // фиолетовая шкала
   const a = 0.25 + t * 0.65
   return `rgb(var(--accent-rgb) / ${a.toFixed(2)})`
 }

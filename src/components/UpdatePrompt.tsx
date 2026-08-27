@@ -12,9 +12,8 @@ const DISMISS_KEY = 'miraihub_update_dismissed'
 // не обычный баннер, а объяснение, что старую версию сначала надо удалить.
 const LAST_DEBUG_SIGNED_BUILD = 28
 
-// Native-only "an update is available" banner. The sideloaded APK can't update
-// itself from a store, so on launch we compare the installed build with the
-// latest version advertised by the backend and offer a download link.
+// Баннер обновления, только в приложении. APK ставится в обход магазина и сам
+// обновиться не может, поэтому при запуске сверяем версии и предлагаем скачать.
 export default function UpdatePrompt() {
   const [info, setInfo] = useState<AppVersion | null>(null)
   const [needsReinstall, setNeedsReinstall] = useState(false)
@@ -36,7 +35,7 @@ export default function UpdatePrompt() {
         setNeedsReinstall(current > 0 && current <= LAST_DEBUG_SIGNED_BUILD)
         setInfo(latest)
       } catch {
-        /* never block startup on a failed update check */
+        /* неудачная проверка обновлений не должна мешать запуску */
       }
     })()
     return () => { cancelled = true }

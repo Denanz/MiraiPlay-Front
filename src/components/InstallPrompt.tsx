@@ -5,7 +5,7 @@ interface BIPEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-// Native "Add to home screen" prompt for installable PWA (Android/Chromium).
+// Системное предложение «добавить на главный экран» для устанавливаемого PWA.
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null)
   const [dismissed, setDismissed] = useState(() => localStorage.getItem('pwa_install_dismissed') === '1')

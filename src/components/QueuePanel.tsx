@@ -27,7 +27,7 @@ export default function QueuePanel({ queue, onAdd, onRemove, onPlayNow, onClose 
   const [adding, setAdding] = useState(0)
   const [err, setErr] = useState('')
 
-  // Search (debounced)
+  // Поиск с задержкой
   useEffect(() => {
     if (!query.trim()) { setResults([]); return }
     const t = setTimeout(async () => {

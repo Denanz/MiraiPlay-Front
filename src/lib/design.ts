@@ -26,7 +26,7 @@ export function setDesign(next: DesignMode): void {
   subs.forEach((f) => f())
 }
 
-// Reactive hook — components re-render when the design mode flips.
+// Реактивный хук: компоненты перерисовываются при смене дизайна.
 export function useDesign(): DesignMode {
   return useSyncExternalStore(
     (cb) => { subs.add(cb); return () => subs.delete(cb) },

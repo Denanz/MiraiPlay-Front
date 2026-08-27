@@ -41,8 +41,7 @@
 .mdp-browse-sep { width: 1px; height: 20px; background: rgba(255, 255, 255, 0.09); margin: 0 4px; }
 .mdp-browse-genrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 26px; }
 
-/* Compact search field, inline in the filter pill row — the old standalone
-   /search page had its own oversized .mdp-search-bar; this sits at filter-chip height. */
+/* Компактный поиск прямо в ряду фильтров, по высоте чипа. */
 .mdp-browse-search {
   display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
   border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);

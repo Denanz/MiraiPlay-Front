@@ -3,7 +3,7 @@ import { api } from './client'
 const WATCH_PROGRESS_KEY = 'miraihub_watch_progress'
 const WATCH_SELECTION_KEY = 'miraihub_watch_selection'
 
-// One-time migration from the old brand keys so local progress isn't lost.
+// Разовый перенос со старых ключей, чтобы не потерять локальный прогресс.
 try {
   for (const [oldK, newK] of [
     ['anixartex_watch_progress', WATCH_PROGRESS_KEY],
@@ -55,8 +55,8 @@ export interface WatchProgressEntry {
   episodesReleased?: number
 }
 
-// In-memory cache: dedupes/persists responses within a session so back-forward
-// navigation is instant. Cleared on full page reload.
+// Кэш в памяти на время сессии: переходы вперёд-назад становятся мгновенными.
+// Очищается полной перезагрузкой страницы.
 const memCache = new Map<string, Promise<unknown>>()
 function cached<T>(key: string, loader: () => Promise<T>): Promise<T> {
   if (!memCache.has(key)) {
@@ -139,7 +139,7 @@ export function getWatchProgress(releaseId: string | number) {
 export function saveWatchProgress(entry: WatchProgressEntry) {
   const map = getWatchProgressMap()
   const key = String(entry.releaseId)
-  // Preserve poster across updates that don't carry it (e.g. "next episode")
+  // Сохраняем постер при обновлениях, которые его не несут.
   const prev = map[key]
   map[key] = { ...entry, releaseImage: entry.releaseImage || prev?.releaseImage }
   writeJson(WATCH_PROGRESS_KEY, map)
@@ -155,9 +155,8 @@ export function listWatchProgress(): WatchProgressEntry[] {
   return Object.values(getWatchProgressMap()).sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
-// Cross-device "continue watching" pulled from the Anixart account history.
-// Each history item is a RELEASE object; the last watched episode lives under
-// `last_view_episode` (releaseId/sourceId/position + source). List is newest-first.
+// «Продолжить смотреть» из истории аккаунта, общей для устройств. Элемент истории —
+// это релиз, а последняя серия лежит в `last_view_episode`. Список свежими вперёд.
 interface LastViewEpisode {
   releaseId?: number
   sourceId?: number
@@ -180,8 +179,8 @@ export async function deleteAccountHistory(releaseId: string | number) {
 
 export interface WatchedRelease { releaseId: string; title: string; position: number }
 
-// Full watch history (paginated) → per-anime furthest watched episode.
-// Used to evaluate anime-specific achievements.
+// Вся история просмотра постранично — самая дальняя серия по каждому тайтлу.
+// Нужна для ачивок, привязанных к конкретным тайтлам.
 export async function getWatchedReleases(maxPages = 12): Promise<WatchedRelease[]> {
   const best = new Map<string, WatchedRelease>()
   for (let pg = 0; pg < maxPages; pg++) {
@@ -227,7 +226,7 @@ export async function getAccountContinueWatching(): Promise<WatchProgressEntry[]
     }))
 }
 
-// Short cache so several per-release lookups in one render don't refetch history.
+// Короткий кэш, чтобы несколько запросов в одном рендере не тянули историю заново.
 let accountContinueCache: { at: number; data: WatchProgressEntry[] } | null = null
 async function accountContinueCached(): Promise<WatchProgressEntry[]> {
   if (accountContinueCache && Date.now() - accountContinueCache.at < 30_000) return accountContinueCache.data
@@ -237,10 +236,9 @@ async function accountContinueCached(): Promise<WatchProgressEntry[]> {
 }
 
 /**
- * Cross-device "where did I stop" for ONE release. The Anixart account history
- * is the synced source of truth (updated server-side on every play via
- * /history/add); localStorage is only a per-device cache. We return whichever is
- * further along so resuming works the same on desktop and Android.
+ * «На чём остановился» по одному релизу. Истина — история аккаунта, она
+ * обновляется на сервере при каждом запуске; localStorage лишь кэш устройства.
+ * Возвращаем то, что дальше, чтобы продолжение работало одинаково везде.
  */
 export async function getReleaseProgress(releaseId: string | number): Promise<WatchProgressEntry | null> {
   const key = String(releaseId)

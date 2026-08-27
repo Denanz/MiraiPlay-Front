@@ -9,7 +9,7 @@ export const DAY_LABELS: Record<Weekday, string> = {
   friday: 'Пятница', saturday: 'Суббота', sunday: 'Воскресенье',
 }
 
-// JS getDay(): 0=Sun..6=Sat → our weekday key
+// getDay() в JS: 0 — воскресенье, 6 — суббота; переводим в наш ключ дня
 export function todayKey(): Weekday {
   return (['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as Weekday[])[new Date().getDay()]
 }
@@ -21,7 +21,7 @@ export async function getSchedule(): Promise<Record<Weekday, Release[]>> {
   return out
 }
 
-// Anixart season ids: 1=winter, 2=spring, 3=summer, 4=fall
+// Сезоны Anixart: 1 — зима, 2 — весна, 3 — лето, 4 — осень
 export const SEASONS: Array<{ id: number; label: string; emoji: string }> = [
   { id: 1, label: 'Зима', emoji: '❄️' },
   { id: 2, label: 'Весна', emoji: '🌸' },

@@ -42,7 +42,7 @@ export default function SchedulePage() {
   const { session } = useAuth()
   const [mode, setMode] = useState<Mode>('schedule')
 
-  // ── Schedule (airing calendar) ──
+  // ── Расписание выхода серий ──
   const [schedule, setSchedule] = useState<Record<Weekday, Release[]> | null>(null)
   const [loadingSchedule, setLoadingSchedule] = useState(true)
   const today = todayKey()
@@ -68,7 +68,7 @@ export default function SchedulePage() {
     onlyMine && myIds ? items.filter(r => myIds.has(r.id)) : items
 
 
-  // ── Seasons ──
+  // ── Сезоны ──
   const [season, setSeason] = useState(currentSeason())
   const [year, setYear] = useState(NOW_YEAR)
   const [seasonItems, setSeasonItems] = useState<Release[]>([])
@@ -84,7 +84,7 @@ export default function SchedulePage() {
   }, [mode, season, year])
 
   const orderedDays = useMemo(() => {
-    // Start the week at today for relevance
+    // Неделю начинаем с сегодняшнего дня
     const start = DAYS.indexOf(today)
     return [...DAYS.slice(start), ...DAYS.slice(0, start)]
   }, [today])

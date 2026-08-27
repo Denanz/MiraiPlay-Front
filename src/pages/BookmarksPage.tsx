@@ -122,9 +122,9 @@ export default function BookmarksPage() {
     return list
   }, [items, query, sort, ratingsTick])
 
-  // React to ?tab= changes even when already mounted on this route — including
-  // browser back/forward landing back on the bare (no ?tab=) URL, which must
-  // restore the default "История" tab rather than leaving the last-active one.
+  // Следим за ?tab= даже когда уже стоим на этом маршруте: кнопки назад-вперёд
+  // возвращают на адрес без параметра, и его тоже надо
+  // вернуть на вкладку «История», а не оставлять последнюю открытую.
   const tabParam = searchParams.get('tab')
   useEffect(() => {
     const i = tabParam ? TABS.findIndex(t => t.label === tabParam) : 0

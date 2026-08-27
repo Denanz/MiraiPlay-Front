@@ -8,8 +8,8 @@ export interface AppVersion {
   mandatory: boolean
 }
 
-// Latest published app version, advertised by the MiraiHub backend. Returns null
-// on any failure so the update check can never block or break app startup.
+// Последняя опубликованная версия приложения. При любой ошибке возвращает null,
+// чтобы проверка обновлений не мешала запуску.
 export async function getLatestVersion(): Promise<AppVersion | null> {
   try {
     const res = await api.get<AppVersion>('/api/v1/app/version')

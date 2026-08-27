@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: dark;
-  /* Accent palette — overridden at runtime by the theme picker (lib/theme.ts) */
+  /* Акцентные цвета, на лету подменяются выбором темы */
   --accent-rgb: 204 117 250;
   --accent-soft-rgb: 222 169 250;
   --accent-dim-rgb: 118 50 154;
@@ -20,10 +20,9 @@ html, body {
   color: #f5f0ff;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Kill the WebView rubber-band/bounce so the page can't be dragged past its
-     bounds (most visible on Schedule and inside the immersive player, where the
-     overscroll gap exposed the background). Pairs with overScrollMode=never on
-     the native WebView in MainActivity. */
+  /* Убираем резиновый оверскролл WebView: заметнее всего он был в расписании и в
+     плеере, где щель обнажала фон. В паре с overScrollMode=never на нативной
+     стороне. */
   overscroll-behavior: none;
 }
 
@@ -188,6 +187,6 @@ h1, h2, h3, .font-display {
   .md-more-sheet a.on{color:rgb(var(--accent-soft-rgb));background:rgb(var(--accent-rgb)/0.14)}
 }
 
-/* Panels get the glass treatment in modern mode */
+/* В Modern панели становятся стеклянными */
 [data-design="modern"] .panel{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.09);backdrop-filter:blur(16px)}
 [data-design="modern"] h1,[data-design="modern"] h2{font-family:'Space Grotesk','Inter',sans-serif}

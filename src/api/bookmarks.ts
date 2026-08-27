@@ -28,15 +28,15 @@ export async function getProfileList(listId: number, page = 0) {
   return res.data
 }
 
-// Anixart API uses add/delete GET endpoints (same as the TUI), not a toggle.
+// В API Anixart добавление и удаление — отдельные GET-ручки, а не переключатель.
 export async function toggleFavorite(releaseId: number, isFavorite: boolean) {
   const action = isFavorite ? 'delete' : 'add'
   const res = await api.get(`/api/v1/favorite/${action}/${releaseId}`)
   return res.data
 }
 
-// Switch profile-list status. Removes the previous list (if any), then adds
-// the new one. Clicking the currently-active list removes it (toggle off).
+// Смена списка в профиле: сначала убираем из прежнего, потом кладём в новый.
+// Повторный клик по текущему списку убирает тайтл из него.
 export async function setListStatus(releaseId: number, listId: number, currentStatus: number) {
   if (currentStatus === listId) {
     const res = await api.get(`/api/v1/profile/list/delete/${listId}/${releaseId}`)

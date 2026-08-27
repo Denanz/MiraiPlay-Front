@@ -10,10 +10,10 @@ const SPOTLIGHT_POOL = 10
 import { img } from '../lib/img'
 import { useDesign } from '../lib/design'
 
-// Featured spotlight: an owner-pinned title if one is set (see AdminPage),
-// otherwise the most popular candidate that's actually watchable right now
+// Баннер на главной: закреплённый владельцем тайтл, а если его нет — самый
+// популярный из тех, что уже можно смотреть
 // (skip "Анонс" — status.id 3 — since there are no episodes to watch yet).
-// Note: release.status_id is always 0 (dead field) — the real status is nested.
+// status_id всегда 0 и не используется — настоящий статус во вложенном объекте.
 export default function Spotlight() {
   const navigate = useNavigate()
   const design = useDesign()

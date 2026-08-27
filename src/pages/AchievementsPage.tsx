@@ -62,7 +62,7 @@ export default function AchievementsPage() {
       if (!map.has(a.category)) map.set(a.category, [])
       map.get(a.category)!.push(a)
     }
-    // unlocked first, then by progress within each category
+    // сначала полученные, внутри категории — по прогрессу
     for (const arr of map.values()) {
       arr.sort((x, y) => Number(y.unlocked) - Number(x.unlocked) || y.pct - x.pct)
     }

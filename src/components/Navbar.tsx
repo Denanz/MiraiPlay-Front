@@ -25,7 +25,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'text-text bg-white/[0.06]' : 'text-muted hover:text-text'
   }`
 
-// Native app uses the bottom tab bar instead of the hamburger menu.
+// В приложении вместо гамбургера нижняя панель вкладок.
 const isNative = Capacitor.isNativePlatform()
 
 export default function Navbar() {

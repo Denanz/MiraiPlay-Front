@@ -6,11 +6,10 @@ import ReleaseCard from './ReleaseCard'
 import { useDesign } from '../lib/design'
 import { SESSION_SEED, mulberry32, shuffled } from '../lib/sessionRandom'
 
-// Profile-list IDs (shared meaning with BookmarksPage.tsx): 1 Смотрю, 2 В планах,
+// Номера списков профиля, те же, что в BookmarksPage: 1 Смотрю, 2 В планах,
 // 3 Просмотрено, 4 Отложено, 5 Брошено.
-// Taste signal comes only from anime actually watched (watching/completed) — planned
-// or dropped titles don't tell us what the user likes. Everything tracked in any list
-// is excluded from the results so we never recommend something already on the radar.
+// Вкус считаем только по реально просмотренному: запланированное и брошенное о
+// предпочтениях не говорит. Всё, что уже есть в любом списке, из выдачи убираем.
 const TASTE_LISTS = [1, 3]
 const ALL_LISTS = [1, 2, 3, 4, 5]
 
@@ -81,7 +80,7 @@ export default function Recommendations() {
         // выглядит по-новому.
         if (!cancelled) setItems(shuffled(candidates, rnd).slice(0, 18))
       } catch {
-        /* best-effort — leave the section hidden on failure */
+        /* не вышло — просто не показываем блок */
       }
     })()
 

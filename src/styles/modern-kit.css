@@ -1,12 +1,8 @@
-/* ===================== Modern content kit ===================== *
- * Shared atoms for the "Modern" design mode content pages (glass
- * cards, chips, buttons, poster grids, bento tiles). Ported 1:1 from
- * the design prototype (services/html/anixartex/prototype/proto.css)
- * but using the app's themeable --accent-rgb tokens instead of a
- * fixed hex, so the runtime accent-color picker keeps working.
- * Page-specific layout (hero, backdrop, masonry, week grid, …) lives
- * in each page's own src/styles/modern-<page>.css file, same split
- * as the prototype (shared proto.css + per-page <style> blocks). */
+/* ===================== Набор элементов Modern ===================== *
+ * Общие кирпичики страниц в дизайне Modern: стеклянные карточки, чипы,
+ * кнопки, сетки постеров. Цвета берутся из переменной --accent-rgb, а не
+ * прибиты гвоздями, поэтому выбор акцента на лету продолжает работать.
+ * Вёрстка отдельных страниц лежит в своих modern-<страница>.css. */
 
 .mdk-glass {
   background: rgba(255, 255, 255, 0.045);
@@ -89,9 +85,8 @@ button.mdk-chip:hover { background: rgba(255, 255, 255, 0.11); }
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgb(var(--accent-rgb) / 0.3);
 }
 .mdk-poster .mdk-play {
-  /* Always pointer-events:none — this layer only paints the dim backdrop + centers
-     the icon. It must never intercept clicks, even on hover (hovering with a mouse
-     always precedes clicking, so re-enabling events here would swallow every click). */
+  /* Всегда pointer-events:none: слой только затемняет фон и центрирует иконку.
+     Ловить клики ему нельзя даже на наведении — иначе он съест их все. */
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none; transition: 0.2s; background: rgba(0, 0, 0, 0.25);
 }

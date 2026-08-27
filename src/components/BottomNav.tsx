@@ -23,7 +23,7 @@ const tabs = [
   },
 ]
 
-// Mobile-only bottom tab bar (replaces the hamburger menu).
+// Нижняя панель вкладок, только на мобильных.
 export default function BottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/[0.07]

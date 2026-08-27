@@ -1,6 +1,6 @@
-// Achievement catalog + evaluation engine.
-// Generic milestones are generated in tiers; anime-specific ones match a watched
-// release by title and require reaching a given episode.
+// Каталог ачивок и движок их подсчёта.
+// Общие вехи генерируются ступенями, привязанные к тайтлу сверяются по названию
+// и требуют дойти до нужной серии.
 
 export type Tier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'story' | 'fun'
 
@@ -52,7 +52,7 @@ export const TIER_STYLE: Record<Tier, { ring: string; text: string; label: strin
   fun: { ring: 'ring-pink-400/50', text: 'text-pink-300', label: 'Особое' },
 }
 
-// Generate tiered milestone achievements for a numeric stat.
+// Ступенчатые вехи для числового показателя.
 function milestones(
   idBase: string, category: string, icon: string,
   value: (c: AchContext) => number,
@@ -67,9 +67,8 @@ function milestones(
     tier: TIERS[Math.min(i, TIERS.length - 1)],
     check: (c: AchContext) => {
       const v = value(c)
-      // Most stats here are already integers, but registerYears is a float —
-      // floor (not round) for display so progress never shows "n/n" (looking
-      // complete) while `unlocked` is still false for a value just under n.
+      // Почти все показатели целые, но registerYears дробный: округляем вниз,
+      // иначе прогресс покажет «n/n» у ещё не полученной ачивки.
       return { unlocked: v >= s.n, progress: Math.min(Math.floor(v), s.n), target: s.n }
     },
   }))
@@ -77,7 +76,7 @@ function milestones(
 
 const norm = (s: string) => s.toLowerCase().replace(/[ё]/g, 'е').replace(/[^a-zа-я0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim()
 
-// Anime-specific milestone: reach `episode` of a release matched by title.
+// Веха по конкретному тайтлу: дойти до нужной серии, релиз ищется по названию.
 function animeMilestone(
   id: string, icon: string, title: string, desc: string,
   match: string[], episode: number, tier: Tier = 'story',
@@ -96,7 +95,7 @@ function animeMilestone(
   }
 }
 
-// ── Generic catalog ──
+// ── Общий каталог ──
 const generic: Achievement[] = [
   ...milestones('eps', 'Просмотр', '📺', c => c.episodes, [
     { n: 10, title: 'Первые шаги', desc: 'Посмотри 10 серий' },
@@ -177,7 +176,7 @@ const generic: Achievement[] = [
     { n: 3, title: 'Старожил', desc: 'Аккаунту 3 года' },
     { n: 5, title: 'Динозавр', desc: 'Аккаунту 5 лет' },
   ]),
-  // Fun / behavioural
+  // Шуточные и поведенческие
   {
     id: 'dropped-5', title: 'Не зашло', desc: 'Брось 5 тайтлов', icon: '🗑️', category: 'Особое', tier: 'fun',
     check: c => ({ unlocked: c.dropped >= 5, progress: Math.min(c.dropped, 5), target: 5 }),
@@ -197,16 +196,15 @@ const generic: Achievement[] = [
   {
     id: 'taste-focused', title: 'Свой жанр', desc: 'Один жанр — более 40% просмотра', icon: '🎯', category: 'Вкус', tier: 'silver',
     check: c => {
-      // Round once and compare/display the same value — rounding only the
-      // displayed progress (not the unlocked check) could show "40/40"
-      // (looking complete) while unlocked stayed false for e.g. top=39.6.
+      // Округляем один раз и сравниваем то же значение, что показываем: иначе
+      // при 39.6 прогресс нарисует «40/40» у неполученной ачивки.
       const top = Math.round(c.genres[0]?.percentage ?? 0)
       return { unlocked: top >= 40, progress: Math.min(top, 40), target: 40 }
     },
   },
 ]
 
-// Per-genre fan achievements (unlocked if genre is among your preferred genres).
+// Жанровые ачивки: выдаются, если жанр попал в любимые.
 const GENRE_FANS: Array<{ key: string; title: string; icon: string }> = [
   { key: 'экшен', title: 'Фанат экшена', icon: '💥' },
   { key: 'романтика', title: 'Романтик', icon: '💘' },
@@ -234,7 +232,7 @@ const genreFans: Achievement[] = GENRE_FANS.map(g => ({
   },
 }))
 
-// ── Anime-specific story milestones ──
+// ── Вехи по конкретным тайтлам ──
 const animeSpecific: Achievement[] = [
   animeMilestone('op-100', '🏴‍☠️', 'Гранд Лайн открыт', 'One Piece — 100 серий', ['one piece', 'ван пис', 'ванпис'], 100),
   animeMilestone('op-300', '🏴‍☠️', 'В Энис Лобби', 'One Piece — 300 серий', ['one piece', 'ван пис', 'ванпис'], 300),

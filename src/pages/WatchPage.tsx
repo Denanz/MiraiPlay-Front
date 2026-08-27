@@ -29,8 +29,8 @@ interface WatchLocationState {
 }
 
 // A second, synthetic "Источник" entry alongside whatever Anixart's own
-// dubber list returns (in practice always just "Kodik"). id:-1 is a sentinel
-// that never collides with a real Anixart source id (always positive).
+// id:-1 — служебный признак, с настоящими источниками Anixart он не столкнётся:
+// те всегда положительные.
 const ANIMELIB_SOURCE: EpisodeSource = { id: -1, name: 'AnimeLib' }
 
 const ANIMELIB_REASONS: Record<string, string> = {
@@ -40,7 +40,7 @@ const ANIMELIB_REASONS: Record<string, string> = {
   no_native_source: 'У этого тайтла нет своего плеера AnimeLib',
 }
 
-// "12 серия" / "Серия 12" / "12" carry no extra info beyond the number.
+// «12 серия», «Серия 12» и «12» ничего не добавляют к самому номеру.
 function isGenericEpisodeName(name: string | undefined, position: number): boolean {
   if (!name) return true
   const n = name.trim().toLowerCase().replace(/ё/g, 'е')
@@ -68,7 +68,7 @@ export default function WatchPage() {
   const [selectedSource, setSelectedSource] = useState<EpisodeSource | null>(null)
 
   // AnimeLib as a source: its own dub-team list (озвучка), fetched lazily —
-  // wholly separate from Anixart's `types`, which stays untouched for Kodik.
+  // полностью отдельно от `types` Anixart — для Kodik они не меняются.
   const [animelibTeams, setAnimelibTeams] = useState<EpisodeType[]>([])
   const [selectedAnimelibTeam, setSelectedAnimelibTeam] = useState<EpisodeType | null>(null)
   const [animelibEpisodeNumbers, setAnimelibEpisodeNumbers] = useState<string[]>([])
@@ -77,26 +77,26 @@ export default function WatchPage() {
   const [animelibReason, setAnimelibReason] = useState('')
   const [animelibOverrideInput, setAnimelibOverrideInput] = useState('')
   const [animelibOverrideBusy, setAnimelibOverrideBusy] = useState(false)
-  // Bumped after a manual override is saved, to force the lookup below to
-  // retry — none of its other dependencies change just from saving one.
+  // Увеличиваем после сохранения ручного пина, чтобы поиск ниже перезапустился:
+  // сам по себе он на это не среагирует.
   const [animelibRetry, setAnimelibRetry] = useState(0)
   const isAnimelibSource = selectedSource?.id === ANIMELIB_SOURCE.id
-  // Pasting a link only helps when the problem is "wrong/no title match" —
-  // not when the account isn't connected or the title has no native player.
+  // Вставка ссылки помогает только когда не совпал тайтл, а не когда аккаунт не
+  // подключён или своего плеера у тайтла нет.
   const canOverrideAnimelib = animelibReason === 'title_not_found' || animelibReason === 'episode_not_found'
 
   const [loading, setLoading] = useState(true)
   const [loadingEpisodes, setLoadingEpisodes] = useState(false)
   const [error, setError] = useState('')
   const [hideFillers, setHideFillers] = useState(false)
-  // Within-episode position (seconds) for the current release+source, keyed by
-  // episode number — drives the resume bar/timestamp on each tile (feature 12).
+  // Позиция внутри серии в секундах по номеру серии — из неё рисуется полоска
+  // досмотренного на плитке.
   const [epProgress, setEpProgress] = useState<Map<number, { position: number; duration: number }>>(new Map())
   const [epRatings, setEpRatings] = useState<Record<string, number>>({})
 
   const savedSelection = id ? getWatchSelection(id) : null
-  // Last-watched episode for this release. Seed from the local cache instantly,
-  // then upgrade to the cross-device value (Anixart account history) so the
+  // Последняя просмотренная серия релиза. Сначала мгновенно из локального кэша,
+  // затем подменяем значением из истории аккаунта, чтобы
   // "Продолжить" button + preselected source match other devices.
   const [savedProgress, setSavedProgress] = useState<WatchProgressEntry | null>(() => (id ? getWatchProgress(id) : null))
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function WatchPage() {
 
         const preferredTypeId = routeState?.preferredTypeId || savedSelection?.typeId || savedProgress?.typeId
         let preferredType = list.find((item) => item.id === preferredTypeId)
-        // Cross-device entries carry only the dubber name (no id) — match by name.
+        // В истории аккаунта есть только имя озвучки, без id — сверяем по имени.
         if (!preferredType && savedProgress?.typeName) preferredType = list.find((t) => t.name === savedProgress.typeName)
         preferredType = preferredType || list[0] || null
         setSelectedType(preferredType)
@@ -155,8 +155,8 @@ export default function WatchPage() {
   }, [id, selectedType, routeState?.preferredSourceId, savedProgress?.sourceId, savedSelection?.sourceId])
 
   useEffect(() => {
-    // AnimeLib isn't a real Anixart source — asking Anixart for episodes under
-    // sentinel id -1 would just be a wasted/garbage request.
+    // AnimeLib не настоящий источник Anixart: спрашивать у него серии под id -1
+    // бессмысленно.
     if (!id || !selectedType || !selectedSource || isAnimelibSource) return
     setLoadingEpisodes(true)
     setEpisodes([])
@@ -175,12 +175,9 @@ export default function WatchPage() {
       .finally(() => setLoadingEpisodes(false))
   }, [id, selectedType, selectedSource, isAnimelibSource])
 
-  // AnimeLib's own dub-team list + real episode roster, fetched lazily the
-  // first time that source is picked (needs `release` for title matching).
-  // Guarded by a ref key (not `animelibLoading`/`animelibTeams.length` state)
-  // — using the async call's own state as a dependency caused it to retrigger
-  // itself the instant a "not found" result flipped loading back to false,
-  // looping forever and never letting the message/override input render.
+  // Команды AnimeLib и настоящий список серий, тянем лениво при первом выборе
+  // этого источника. Ключом служит ref, а не состояние загрузки: состояние
+  // асинхронного вызова в зависимостях зацикливает эффект сам на себя.
   const animelibFetchKey = `${id || ''}:${animelibRetry}`
   const animelibFetchedKeyRef = useRef('')
   useEffect(() => {
@@ -207,9 +204,8 @@ export default function WatchPage() {
       .finally(() => setAnimelibLoading(false))
   }, [id, isAnimelibSource, release, animelibFetchKey])
 
-  // AnimeLib's own API occasionally blips (backend retries a few times on its
-  // own, but a longer outage can still outlast that) — a one-tap retry beats
-  // sending the user off to reselect the source or reload the page.
+  // API AnimeLib иногда моргает дольше, чем терпят ретраи на бэкенде. Кнопка
+  // «повторить» лучше, чем предлагать перевыбрать источник или обновить страницу.
   const retryAnimelib = () => setAnimelibRetry((v) => v + 1)
 
   const submitAnimelibOverride = async () => {
@@ -226,10 +222,9 @@ export default function WatchPage() {
     }
   }
 
-  // AnimeLib's own real episode numbers (see AnimelibTeamsResult for why this
-  // matters — Anixart's episode count doesn't reliably match for split-cour
-  // titles). Falls back to Anixart's count only while the real roster hasn't
-  // loaded yet, so the grid isn't empty during the brief wait.
+  // Настоящие номера серий AnimeLib: у split-cour тайтлов количество из Anixart
+  // с ними не совпадает. На количество из Anixart опираемся, только пока список
+  // не загрузился, чтобы сетка не была пустой.
   const animelibEpisodeCount = release?.episodes_released || release?.episodes_total || 0
   const animelibEpisodes = useMemo<Episode[]>(() => {
     if (animelibEpisodeNumbers.length > 0) {
@@ -289,13 +284,10 @@ export default function WatchPage() {
           sourceName: ANIMELIB_SOURCE.name,
           totalEpisodes: animelibEpisodeCount,
           titleOriginal: release?.title_original,
-          // sourceId:-1 isn't a real Anixart source, so it can't be used to
-          // mark the episode watched on the account (Anixart's endpoint 404s
-          // on an id it's never heard of). Any real source for this release
-          // works for that call — Anixart doesn't care which one reported it,
-          // only that the episode was watched — so this rides along as a
-          // stand-in just for that upstream call, while progress/resume still
-          // track under the real -1 sourceId (see /player/progress).
+          // Под id -1 отметить серию просмотренной нельзя — Anixart такого
+          // источника не знает и отвечает 404. Для самого вызова годится любой
+          // настоящий источник релиза, ему важен факт просмотра, а не кто его
+          // сообщил. Прогресс при этом продолжает жить под -1.
           markWatchedSourceId: sources[0]?.id,
         },
       })

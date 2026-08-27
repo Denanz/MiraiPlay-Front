@@ -19,7 +19,7 @@ export async function getStorageBreakdown(adminKey: string): Promise<StorageBrea
   return res.data
 }
 
-// Public — no admin key needed. The Home page hero calls this on every visit.
+// Публично, админский ключ не нужен: главная зовёт это на каждом заходе.
 export async function getSpotlightOverride(): Promise<string | null> {
   const res = await api.get<{ releaseId: string | null }>('/api/v1/spotlight')
   return res.data?.releaseId ?? null

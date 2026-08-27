@@ -11,7 +11,7 @@ export interface AnixartProfile {
   is_sponsor?: boolean
   sponsor_labels?: string[]
   rating_score?: number
-  // Counters
+  // Счётчики
   watching_count?: number
   plan_count?: number
   completed_count?: number
@@ -25,7 +25,7 @@ export interface AnixartProfile {
   video_count?: number
   friend_count?: number
   subscription_count?: number
-  // Rich data
+  // Развёрнутые данные
   watch_dynamics?: WatchDynamicPoint[]
   preferred_genres?: GenreShare[]
   preferred_audiences?: GenreShare[]

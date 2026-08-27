@@ -4,8 +4,8 @@ function token(): string {
   return localStorage.getItem('anixart_token') || ''
 }
 
-// Stable account id — anchors this user's subscriber so notifications track
-// their own watch lists (and their own Telegram), not whoever configured last.
+// Устойчивый id аккаунта: к нему привязан подписчик, чтобы уведомления шли по
+// его спискам и в его Telegram, а не по последнему настроившему.
 function profileId(): string {
   return localStorage.getItem('anixart_user_id') || ''
 }
@@ -22,8 +22,8 @@ export async function getNotifyChat(): Promise<string> {
   }
 }
 
-// Returns { delivered } — whether the bot could actually message the chat
-// (false usually means the user hasn't pressed /start in the bot yet).
+// Возвращает { delivered } — смог ли бот написать в чат. false обычно значит,
+// что человек ещё не нажал /start.
 export async function saveNotifyChat(chatId: string): Promise<{ delivered: boolean }> {
   const { data } = await api.post<{ ok: boolean; delivered: boolean }>('/api/v1/notify/chat', {
     chatId, token: token(), profileId: profileId(),

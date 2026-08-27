@@ -56,6 +56,6 @@ export async function unlinkMirai(): Promise<void> {
   try {
     await api.post('/api/v1/auth/mirai/unlink', {}, withCookies)
   } catch {
-    // best-effort
+    // не критично, если не выйдет
   }
 }

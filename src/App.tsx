@@ -7,9 +7,9 @@ import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import UpdatePrompt from './components/UpdatePrompt'
 
-// Hardware back-button (Android). Without this, Capacitor's default closes the
-// app on every back press. We navigate the in-app history instead, and only
-// minimize the app when we're at a top-level page (nothing left to pop).
+// Аппаратная кнопка «назад». По умолчанию Capacitor закрывает приложение на
+// каждом нажатии; вместо этого ходим по своей истории и сворачиваемся, только
+// когда возвращаться уже некуда.
 const ROOT_PATHS = ['/home', '/browse', '/bookmarks', '/schedule', '/stats', '/login']
 function NativeBackButton() {
   const navigate = useNavigate()
@@ -28,15 +28,14 @@ function NativeBackButton() {
 }
 
 
-// Search lives inside Catalog now — old /search links (bookmarks, the native
-// app's deep-link handler above) redirect there, keeping any ?q= intact.
+// Поиск переехал в каталог, старые ссылки /search ведут туда же вместе с ?q=.
 function SearchRedirect() {
   const location = useLocation()
   return <Navigate to={`/browse${location.search}`} replace />
 }
 
-// Route-level code splitting: each page ships as its own chunk, loaded on demand
-// (kept tiny by gzip + immutable caching), so the initial bundle stays small.
+// Каждая страница едет отдельным чанком и грузится по требованию, чтобы стартовый
+// бандл оставался маленьким.
 const HomePage = lazy(() => import('./pages/HomePage'))
 const CatalogPage = lazy(() => import('./pages/CatalogPage'))
 const SchedulePage = lazy(() => import('./pages/SchedulePage'))

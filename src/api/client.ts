@@ -1,13 +1,11 @@
 import axios from 'axios'
 
-// Dedicated, directly-bound API port (not behind the 443 SNI passthrough) so the
-// backend sees the real client IP — enables IP-based blocking. Player iframe stays
-// on the standard 443 port (see PlayerPage).
+// Отдельный порт API, минуя SNI-проксирование на 443: так бэкенд видит настоящий
+// IP клиента и может банить по нему. Iframe плеера остаётся на обычном 443.
 const BASE = 'https://aniapi.denanz.fun:8444'
 
-// Shared gateway key — must match backend PROXY_KEY. Embedded in the bundle
-// (so not a real secret), but it locks the proxy to our own frontend and stops
-// the domain from being used as a free open proxy by random clients/scanners.
+// Ключ шлюза, должен совпадать с PROXY_KEY на бэкенде. Лежит в бандле и секретом
+// не является, но не даёт использовать домен как бесплатный открытый прокси.
 const PROXY_KEY = 'd3ffb0843f89eedefe80efec1dda7a2b97fa9645934a3ce4'
 
 export const api = axios.create({

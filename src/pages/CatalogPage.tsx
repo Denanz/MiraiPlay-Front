@@ -8,7 +8,7 @@ import Spinner from '../components/Spinner'
 import { useDesign } from '../lib/design'
 import '../styles/modern-browse.css'
 
-// Quick category presets (country / status). Genres, years and sort are layered on top.
+// Быстрые пресеты по стране и статусу. Жанры, годы и сортировка ложатся сверху.
 const TABS: Array<{ label: string; base: Record<string, unknown> }> = [
   { label: 'Все', base: {} },
   { label: 'Аниме', base: { country: 'Япония' } },
@@ -95,9 +95,8 @@ function FilterDropdown({
   )
 }
 
-// Native <select> here used to pop the OS's own year list over the whole page —
-// unstyled, and on mobile long enough to overlap the card grid below. Custom
-// scrollable button lists match every other filter and stay inside the panel.
+// Системный <select> открывал список годов поверх всей страницы, без стилей и
+// налезая на карточки. Свой прокручиваемый список кнопок остаётся внутри панели.
 function YearOptions({ value, onChange }: { value: number | ''; onChange: (v: number | '') => void }) {
   return (
     <div className="max-h-56 overflow-y-auto flex flex-col gap-0.5 pr-1">
@@ -127,7 +126,7 @@ export default function CatalogPage() {
   const restoreSnapshot = navigationType === 'POP' ? catalogSnapshot : null
   const restoredRef = useRef(!!restoreSnapshot)
 
-  // "Сюрприз": jump to a random title from the user's "watching"/"planned" lists.
+  // «Сюрприз»: случайный тайтл из списков «Смотрю» и «В планах».
   const handleSurprise = useCallback(async () => {
     setSurpriseBusy(true)
     try {
@@ -195,10 +194,8 @@ export default function CatalogPage() {
     return body
   }, [activeTab, sort, genres, yearFrom, yearTo, studio, status])
 
-  // Guards against out-of-order responses: rapid filter changes (or a filter
-  // change landing while a load-more is in flight) can fire overlapping
-  // requests. Only the response matching the latest issued request is applied
-  // — an earlier one resolving later would otherwise clobber fresher state.
+  // Защита от ответов, пришедших не по порядку: быстрая смена фильтров рождает
+  // накладывающиеся запросы. Применяем только ответ на самый последний.
   const requestIdRef = useRef(0)
 
   const loadReleases = useCallback(async (pg: number, replace = false) => {
@@ -219,9 +216,8 @@ export default function CatalogPage() {
     }
   }, [buildBody, query])
 
-  // Reload whenever any filter changes — but not on the very first run after
-  // restoring a snapshot, otherwise "назад" would immediately wipe the
-  // restored list and start over from page 0.
+  // Перезагружаем при любой смене фильтра, но не на первом проходе после
+  // восстановления списка: иначе «назад» тут же сотрёт его и начнёт с нуля.
   useEffect(() => {
     if (restoredRef.current) { restoredRef.current = false; return }
     setPage(0)
@@ -292,7 +288,7 @@ export default function CatalogPage() {
     loadReleases(nextPage)
   }, [page, loadReleases])
 
-  // Infinite scroll: load the next page when the sentinel scrolls into view
+  // Бесконечная лента: следующая страница подгружается, когда маячок попадает в кадр
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     const el = sentinelRef.current

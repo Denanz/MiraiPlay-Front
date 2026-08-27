@@ -5,14 +5,14 @@ interface Props {
   src?: string
   alt?: string
   className?: string
-  /** classes for the inner <img> (e.g. hover scale) */
+  /** классы для внутреннего <img> */
   imgClassName?: string
-  /** route through the image proxy (default true) */
+  /** гнать ли через прокси картинок, по умолчанию да */
   proxy?: boolean
 }
 
-// Image with a shimmering placeholder + fade-in on load. Avoids layout shift
-// (parent reserves the box) and the "pop" of images snapping in.
+// Картинка с мерцающей заглушкой и плавным появлением. Родитель держит размер,
+// поэтому вёрстка не прыгает.
 export default function Img({ src, alt = '', className = '', imgClassName = '', proxy = true }: Props) {
   const [loaded, setLoaded] = useState(false)
   const finalSrc = src ? (proxy ? img(src) : src) : ''

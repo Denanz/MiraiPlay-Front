@@ -1,7 +1,7 @@
-// App changelog, newest first. The first entry is the current version.
+// Список изменений, свежее сверху. Первая запись — текущая версия.
 //
-// Versioning rule: a release that adds something new bumps the minor (1.3 → 1.4);
-// a release that only fixes/cleans up bumps the patch (1.3 → 1.3.1).
+// Правило версий: релиз с чем-то новым поднимает minor, релиз с одними
+// исправлениями — patch.
 //
 // Тон: живой и будничный, как рассказ о том, что поделал за вечер. У каждой
 // версии есть intro — пара строк своими словами о том, зачем всё это было;

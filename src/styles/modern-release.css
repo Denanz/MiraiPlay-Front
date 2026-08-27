@@ -18,10 +18,9 @@
 .mdp-release-cta { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
 
 .mdp-release-layout { display: grid; grid-template-columns: 1fr 300px; gap: 22px; margin-top: 30px; }
-/* Grid tracks default to min-width:auto, i.e. the content's min-content size — a long
-   unwrapped row (screenshots strip, watch-order list) can force the 1fr track wider
-   than its share, pushing the 300px aside off-screen. Clamp both tracks to their
-   assigned width and let their own content scroll/wrap internally instead. */
+/* У колонок грида min-width по умолчанию auto, поэтому длинная неразрывная строка
+   раздувает колонку 1fr и выталкивает боковую панель за экран. Прибиваем ширину
+   обеим и разрешаем содержимому прокручиваться внутри. */
 .mdp-release-layout > * { min-width: 0; }
 @media (max-width: 960px) { .mdp-release-layout { grid-template-columns: 1fr; } }
 
