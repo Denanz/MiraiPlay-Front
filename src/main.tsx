@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, HashRouter } from 'react-router-dom'
 import App from './App'
@@ -21,12 +21,14 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 // роутинг через #/, а навигация с пульта.
 const Router = isTizenBuild ? HashRouter : BrowserRouter
 if (isTizenBuild) installTvNavigation()
+// На ТВ — свой интерфейс под пульт. Отдельным чанком: в веб-сборку не попадает.
+const TvApp = isTizenBuild ? lazy(() => import('./tv/TvApp')) : null
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Router>
       <AuthProvider>
-        <App />
+        {TvApp ? <Suspense fallback={null}><TvApp /></Suspense> : <App />}
       </AuthProvider>
     </Router>
   </React.StrictMode>,

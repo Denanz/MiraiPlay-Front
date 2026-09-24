@@ -1,0 +1,193 @@
+/* Интерфейс MiraiPlay для телевизора (Tizen). Экран 1920×1080, управление пультом.
+ * Пишем на «старом» CSS: Chromium 63 не знает gap у flex, inset, aspect-ratio.
+ * Тяжёлые эффекты (blur, backdrop-filter) не используем — железо ТВ слабое. */
+
+.tv-root {
+  position: fixed; top: 0; left: 0; width: 1920px; height: 1080px;
+  overflow: hidden; background: #07060b; color: #f5f0ff;
+  font-family: Inter, system-ui, sans-serif;
+}
+.tv-root *:focus { outline: none !important; }
+/* Сброс кнопок — голым селектором, чтобы любой класс (.tv-btn, .tvchip…) его перебивал.
+   tv.css грузится только в Tizen-сборке. */
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* ── Боковое меню ─────────────────────────────────────────── */
+.tv-nav {
+  position: absolute; top: 0; left: 0; bottom: 0; width: 112px; z-index: 30;
+  display: flex; flex-direction: column; justify-content: center;
+  padding-left: 28px;
+  background: linear-gradient(90deg, rgba(7,6,11,0.96) 0%, rgba(7,6,11,0.7) 70%, rgba(7,6,11,0) 100%);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.tv-nav:focus-within {
+  width: 380px;
+  background: linear-gradient(90deg, rgba(7,6,11,0.99) 0%, rgba(7,6,11,0.94) 65%, rgba(7,6,11,0) 100%);
+}
+.tv-nav-logo { position: absolute; top: 48px; left: 30px; width: 52px; height: 52px; }
+.tv-nav-item {
+  display: flex; align-items: center; height: 64px; margin: 6px 0;
+  padding: 0 16px; border-radius: 16px; width: 56px; overflow: hidden;
+  color: #9b92ad; white-space: nowrap;
+  transition: width 0.25s ease, background 0.15s ease, color 0.15s ease;
+}
+.tv-nav:focus-within .tv-nav-item { width: 300px; }
+.tv-nav-item svg { width: 26px; height: 26px; flex-shrink: 0; fill: currentColor; }
+.tv-nav-item span { margin-left: 22px; font-size: 26px; font-weight: 600; opacity: 0; transition: opacity 0.2s ease; }
+.tv-nav:focus-within .tv-nav-item span { opacity: 1; }
+.tv-nav-item.on { color: #f5f0ff; }
+.tv-nav-item.on svg { fill: rgb(var(--accent-rgb)); }
+.tv-nav-item:focus { background: rgb(var(--accent-rgb)); color: #07060b; }
+.tv-nav-item:focus svg { fill: #07060b; }
+
+.tv-main { position: absolute; top: 0; left: 112px; right: 0; bottom: 0; }
+
+/* ── Баннер (тайтл под фокусом) ───────────────────────────── */
+.tvb { position: absolute; top: 0; left: 0; right: 0; height: 600px; overflow: hidden; }
+.tvb-bg {
+  position: absolute; top: 0; right: 0; width: 1240px; height: 100%;
+  background-size: cover; background-position: center 25%;
+  animation: tv-fade 0.5s ease both;
+}
+.tvb-bg.poster { background-position: center 20%; }
+.tvb-shade {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    linear-gradient(90deg, #07060b 0%, #07060b 34%, rgba(7,6,11,0.85) 48%, rgba(7,6,11,0.2) 75%, rgba(7,6,11,0) 100%),
+    linear-gradient(0deg, #07060b 0%, rgba(7,6,11,0) 35%);
+}
+.tvb-info { position: absolute; left: 72px; top: 110px; width: 820px; animation: tv-fade 0.4s ease both; }
+.tv-kicker { font-size: 20px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgb(var(--accent-soft-rgb)); }
+.tv-title {
+  font-family: "Space Grotesk", Inter, sans-serif; font-size: 64px; line-height: 1.05; font-weight: 700;
+  margin: 14px 0 18px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tv-meta { display: flex; align-items: center; flex-wrap: wrap; font-size: 22px; color: #c9c1d9; }
+.tv-meta > * { margin-right: 22px; margin-bottom: 6px; }
+.tv-grade { color: rgb(var(--accent-soft-rgb)); font-weight: 700; }
+.tv-pill { padding: 4px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); font-size: 19px; }
+.tv-desc {
+  margin-top: 14px; font-size: 22px; line-height: 1.5; color: #b8b0c8;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tv-actions { display: flex; margin-top: 30px; }
+.tv-btn {
+  display: flex; align-items: center; height: 64px; padding: 0 34px; margin-right: 18px;
+  border-radius: 14px; font-size: 24px; font-weight: 700;
+  background: rgba(255,255,255,0.12); color: #f5f0ff;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.tv-btn svg { width: 26px; height: 26px; fill: currentColor; margin-right: 14px; }
+.tv-btn.primary { background: rgba(var(--accent-rgb), 0.28); }
+.tv-btn:focus { background: #f5f0ff; color: #07060b; transform: scale(1.06); }
+.tv-btn.primary:focus { background: rgb(var(--accent-rgb)); color: #07060b; }
+
+/* ── Вертикальная лента рядов ─────────────────────────────── */
+.tvs { position: absolute; left: 0; right: 0; bottom: 0; overflow: hidden; }
+.tvs-track { position: relative; transition: transform 0.35s ease; }
+
+.tvr { padding: 0 0 26px; }
+.tvr-title { font-size: 28px; font-weight: 700; margin: 0 0 14px 72px; color: #e9e3f5; }
+.tvr-viewport { overflow: hidden; padding: 18px 0 22px; margin: -18px 0 -22px; }
+.tvr-track { position: relative; white-space: nowrap; padding-left: 72px; transition: transform 0.3s ease; }
+.tvr-empty { margin-left: 72px; font-size: 22px; color: #6f6782; }
+
+/* ── Карточки ─────────────────────────────────────────────── */
+.tvc {
+  display: inline-block; vertical-align: top; position: relative;
+  width: 208px; height: 312px; margin-right: 22px; border-radius: 14px;
+  background: #16121f; overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tvc img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.tvc:focus {
+  transform: scale(1.1); z-index: 2;
+  box-shadow: 0 0 0 4px rgb(var(--accent-rgb)), 0 18px 40px rgba(0,0,0,0.6);
+}
+.tvc-noimg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; white-space: normal; font-size: 20px; color: #9b92ad; }
+.tvc-badge {
+  position: absolute; left: 10px; bottom: 14px; padding: 4px 10px; border-radius: 8px;
+  background: rgba(7,6,11,0.85); font-size: 17px; font-weight: 700;
+}
+.tvc-grade {
+  position: absolute; right: 10px; top: 10px; padding: 3px 9px; border-radius: 8px;
+  background: rgba(7,6,11,0.8); font-size: 17px; font-weight: 700; color: rgb(var(--accent-soft-rgb));
+}
+.tvc-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255,255,255,0.2); }
+.tvc-progress div { height: 100%; background: rgb(var(--accent-rgb)); }
+.tvc.skeleton { background: linear-gradient(90deg, #13101b, #1b1726, #13101b); background-size: 200% 100%; animation: tv-shimmer 1.4s linear infinite; }
+
+/* Плитка серии */
+.tve {
+  display: inline-block; vertical-align: top; position: relative; white-space: normal;
+  width: 300px; height: 170px; margin-right: 20px; border-radius: 14px; padding: 18px 20px;
+  background: #16121f; text-align: left;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.tve:focus { transform: scale(1.07); background: #221b31; box-shadow: 0 0 0 4px rgb(var(--accent-rgb)); z-index: 2; }
+.tve-num { font-family: "Space Grotesk", Inter, sans-serif; font-size: 44px; font-weight: 700; line-height: 1; }
+.tve-name { margin-top: 12px; font-size: 19px; color: #b8b0c8; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tve-seen { position: absolute; right: 16px; top: 16px; font-size: 17px; font-weight: 700; color: rgb(var(--accent-soft-rgb)); }
+.tve.watched .tve-num { color: #6f6782; }
+.tve.current { background: rgba(var(--accent-rgb), 0.18); }
+
+/* Чип (озвучка, источник, тема) */
+.tvchip {
+  display: inline-block; vertical-align: top; height: 58px; line-height: 58px; padding: 0 28px; margin-right: 16px;
+  border-radius: 999px; font-size: 22px; font-weight: 600; background: rgba(255,255,255,0.08); color: #c9c1d9;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.tvchip.on { background: rgba(var(--accent-rgb), 0.25); color: #f5f0ff; }
+.tvchip:focus { background: #f5f0ff; color: #07060b; transform: scale(1.06); }
+
+/* ── Экран тайтла ─────────────────────────────────────────── */
+.tvd-top { position: relative; height: 700px; }
+.tvd-top .tvb { height: 700px; }
+.tvd-top .tvb-info { top: 150px; }
+
+/* ── Поиск ────────────────────────────────────────────────── */
+.tvk { position: absolute; left: 72px; top: 70px; width: 520px; }
+.tvk-query {
+  height: 76px; border-radius: 16px; background: #16121f; margin-bottom: 26px;
+  display: flex; align-items: center; padding: 0 24px; font-size: 30px; font-weight: 600;
+  white-space: nowrap; overflow: hidden;
+}
+.tvk-query .ph { color: #6f6782; font-weight: 500; }
+.tvk-caret { display: inline-block; width: 3px; height: 34px; margin-left: 3px; background: rgb(var(--accent-rgb)); animation: tv-blink 1s steps(1) infinite; }
+.tvk-row { white-space: nowrap; margin-bottom: 10px; }
+.tvk-key {
+  display: inline-block; vertical-align: top; width: 74px; height: 64px; margin-right: 10px; border-radius: 12px;
+  background: rgba(255,255,255,0.07); font-size: 26px; font-weight: 600; text-align: center; line-height: 64px;
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.tvk-key.wide { width: 158px; font-size: 21px; }
+.tvk-key:focus { background: rgb(var(--accent-rgb)); color: #07060b; transform: scale(1.08); }
+.tvk-results { position: absolute; left: 660px; top: 50px; right: 0; bottom: 0; }
+.tvk-results .tvs { top: 64px; }
+.tvk-head { font-size: 28px; font-weight: 700; margin-left: 20px; color: #e9e3f5; }
+.tvk-results .tvr-track { padding-left: 20px; }
+.tvk-results .tvr { padding-bottom: 30px; }
+.tvk-results .tvc { width: 190px; height: 285px; }
+
+/* ── Настройки, служебные экраны ─────────────────────────── */
+.tvpage { position: absolute; left: 72px; top: 90px; right: 72px; }
+.tvpage h1 { font-family: "Space Grotesk", Inter, sans-serif; font-size: 56px; font-weight: 700; margin-bottom: 40px; }
+.tvpage h2 { font-size: 28px; font-weight: 700; margin: 36px 0 18px; color: #e9e3f5; }
+.tvpage p { font-size: 24px; color: #b8b0c8; }
+.tv-center { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #9b92ad; }
+.tv-spinner { width: 64px; height: 64px; border-radius: 50%; border: 5px solid rgba(255,255,255,0.1); border-top-color: rgb(var(--accent-rgb)); animation: tv-spin 0.9s linear infinite; }
+
+@keyframes tv-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tv-spin { to { transform: rotate(360deg); } }
+@keyframes tv-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes tv-blink { 50% { opacity: 0; } }
+
+.tvk-key.on { background: rgba(var(--accent-rgb), 0.3); }
+.tvk-key.on:focus { background: rgb(var(--accent-rgb)); }
+.tv-toast {
+  position: absolute; left: 50%; bottom: 60px; margin-left: -360px; width: 720px; z-index: 40;
+  padding: 20px 28px; border-radius: 16px; text-align: center; font-size: 24px;
+  background: rgba(22,18,31,0.96); border: 1px solid rgba(var(--accent-rgb), 0.4);
+  animation: tv-fade 0.2s ease both;
+}

@@ -103,6 +103,8 @@ function score(from: DOMRect, to: DOMRect, dir: Dir): number {
 
 function focusEl(el: HTMLElement) {
   el.focus()
+  // TV-интерфейс сам двигает ряды трансформом (src/tv/focus.tsx).
+  if (el.closest('.tv-root')) return
   try {
     el.scrollIntoView({ block: 'center', inline: 'nearest' })
   } catch {
