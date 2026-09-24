@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://anime.denanz.fun/tizen" version="1.0.0" viewmodes="maximized">
+    <tizen:application id="MiraiPlay1.MiraiPlay" package="MiraiPlay1" required_version="2.3"/>
+    <tizen:profile name="tv-samsung"/>
+    <name>MiraiPlay</name>
+    <icon src="icon.png"/>
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.all"/>
+
+    <access origin="*" subdomains="true"/>
+    <tizen:allow-navigation>*</tizen:allow-navigation>
+    <!-- Без своей политики Tizen ставит script-src/style-src 'self': блокируются
+         инлайн-скрипты (запуск SystemJS), CSS, который Vite вставляет из JS, и Google Fonts. -->
+    <tizen:content-security-policy>default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; font-src * data:; img-src * data: blob:; media-src * data: blob:; connect-src * data: blob:; frame-src *</tizen:content-security-policy>
+
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

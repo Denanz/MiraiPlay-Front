@@ -43,5 +43,7 @@ export function currentThemeId(): string {
 }
 
 export function accentCss(rgb: string, alpha = 1): string {
-  return `rgb(${rgb} / ${alpha})`
+  // rgba() с запятыми, а не `rgb(r g b / a)`: старый Chromium на ТВ Tizen
+  // понимает только такую запись.
+  return `rgba(${rgb.trim().split(/[\s,]+/).join(', ')}, ${alpha})`
 }

@@ -46,7 +46,7 @@ export default function ModernShell() {
       <aside className={`md-rail ${collapsed ? 'collapsed' : ''}`}>
         <div className="md-brand-row">
           <NavLink to="/browse" className="md-brand">
-            <img src="/brand-mark-64.png" alt="" className="mark" />
+            <img src={`${import.meta.env.BASE_URL}brand-mark-64.png`} alt="" className="mark" />
             <span className="lbl">MiraiPlay</span>
           </NavLink>
           <button

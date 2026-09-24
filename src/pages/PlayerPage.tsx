@@ -10,6 +10,7 @@ import EpisodesPanel from '../components/EpisodesPanel'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { ScreenOrientation } from '@capacitor/screen-orientation'
 import { useDesign } from '../lib/design'
+import { isTizenBuild } from '../lib/tv'
 
 // Нативный плагин: прячет системные панели, пока открыт плеер.
 const Immersive = registerPlugin<{ enable: () => Promise<void>; disable: () => Promise<void> }>('Immersive')
@@ -307,7 +308,9 @@ export default function PlayerPage() {
     if (roomParam) navigate('/home')
   }
 
-  const shareLink = roomCode ? `${window.location.origin}/room/${roomCode}` : ''
+  // В Tizen-приложении origin — file://, ссылка на комнату должна вести на веб-версию.
+  const webOrigin = isTizenBuild ? 'https://anime.denanz.fun' : window.location.origin
+  const shareLink = roomCode ? `${webOrigin}/room/${roomCode}` : ''
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* ignore */ }
   }
@@ -501,7 +504,11 @@ export default function PlayerPage() {
         ref={iframeRef}
         key={playerUrl}
         src={playerUrl}
-        onLoad={primeIframe}
+        onLoad={() => {
+          primeIframe()
+          // На ТВ клавиши пульта должны сразу идти в плеер (он сам ловит OK, перемотку и «Назад»).
+          if (isTizenBuild) iframeRef.current?.focus()
+        }}
         className="absolute inset-0 w-full h-full border-0 bg-black"
         allowFullScreen
         allow="autoplay; fullscreen; picture-in-picture"

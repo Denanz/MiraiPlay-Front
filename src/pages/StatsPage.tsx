@@ -42,7 +42,10 @@ function heatColor(count: number, max: number): string {
   const t = Math.min(1, count / Math.max(1, max))
   // фиолетовая шкала
   const a = 0.25 + t * 0.65
-  return `rgb(var(--accent-rgb) / ${a.toFixed(2)})`
+  // В Tizen-сборке --accent-rgb хранится через запятые (см. tizen/postcss-compat.js).
+  return import.meta.env.MODE === 'tizen'
+    ? `rgba(var(--accent-rgb), ${a.toFixed(2)})`
+    : `rgb(var(--accent-rgb) / ${a.toFixed(2)})`
 }
 
 export default function StatsPage() {

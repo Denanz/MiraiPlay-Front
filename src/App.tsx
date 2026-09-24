@@ -6,6 +6,7 @@ import { useAuth } from './store/auth'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import UpdatePrompt from './components/UpdatePrompt'
+import { isTizenBuild, TV_KEY, exitApp } from './lib/tv'
 
 // Аппаратная кнопка «назад». По умолчанию Capacitor закрывает приложение на
 // каждом нажатии; вместо этого ходим по своей истории и сворачиваемся, только
@@ -27,6 +28,24 @@ function NativeBackButton() {
   return null
 }
 
+// Кнопка «Назад» на пульте телевизора (Tizen): та же логика, что и на Android.
+function TvBackButton() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  useEffect(() => {
+    if (!isTizenBuild) return
+    function onKey(e: KeyboardEvent) {
+      if (e.keyCode !== TV_KEY.back) return
+      e.preventDefault()
+      const atRoot = ROOT_PATHS.includes(location.pathname)
+      if (location.key !== 'default' && !atRoot) navigate(-1)
+      else exitApp()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [navigate, location])
+  return null
+}
 
 // Поиск переехал в каталог, старые ссылки /search ведут туда же вместе с ?q=.
 function SearchRedirect() {
@@ -51,6 +70,7 @@ const PickPage = lazy(() => import('./pages/PickPage'))
 const WrappedPage = lazy(() => import('./pages/WrappedPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'))
+const TvLinkPage = lazy(() => import('./pages/TvLinkPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const DesignPreviewV5 = lazy(() => import('./pages/DesignPreviewV5'))
 
@@ -88,14 +108,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: string |
 function PrivateRoute({ children }: { children: ReactNode }) {
   const { session, bootstrapping } = useAuth()
   // Пока идёт автовход по аккаунту Mirai, редиректить на логин нельзя.
+  const location = useLocation()
   if (bootstrapping) return <RouteFallback />
-  return session ? <>{children}</> : <Navigate to="/login" replace />
+  return session
+    ? <>{children}</>
+    : <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
 }
 
 export default function App() {
   return (
     <ErrorBoundary>
       <NativeBackButton />
+      <TvBackButton />
       <UpdatePrompt />
       <Suspense fallback={<RouteFallback />}>
       <Routes>
@@ -124,6 +148,7 @@ export default function App() {
           <Route path="wrapped" element={<WrappedPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="changelog" element={<ChangelogPage />} />
+          <Route path="tv" element={<TvLinkPage />} />
           {/* Not linked from any nav menu — owner-only, gated by its own admin key. */}
           <Route path="admin" element={<AdminPage />} />
         </Route>

@@ -190,3 +190,10 @@ h1, h2, h3, .font-display {
 /* В Modern панели становятся стеклянными */
 [data-design="modern"] .panel{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.09);backdrop-filter:blur(16px)}
 [data-design="modern"] h1,[data-design="modern"] h2{font-family:'Space Grotesk','Inter',sans-serif}
+
+/* ТВ (Tizen): управление с пульта, курсора нет — выбранный элемент должен быть виден издалека. */
+.tv *:focus {
+  outline: 3px solid rgb(var(--accent-rgb)) !important;
+  outline-offset: 3px;
+}
+.tv iframe:focus { outline: none !important; }
